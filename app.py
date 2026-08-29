@@ -21,6 +21,17 @@ def leer_carta_con_ocr(imagen):
     except Exception as e:
         return "Charizard"
 
+def leer_producto_sellado_ocr(imagen):
+    try:
+        texto = pytesseract.image_to_string(imagen)
+        lineas = [line.strip() for line in texto.split('\n') if line.strip()]
+        if lineas:
+            # Devuelve las primeras líneas relevantes encontradas en la caja/producto
+            return " ".join(lineas[:2])
+        return "Producto Sellado"
+    except Exception as e:
+        return "Producto Sellado"
+
 def obtener_precio_real(nombre_carta):
     """Busca en la API barriendo múltiples resultados (hasta 50) para encontrar una versión con precio real."""
     try:
@@ -146,20 +157,38 @@ with col1:
 
     else:
         st.subheader("Producto Sellado")
+        
+        # Opcional: Subir foto para detectar el producto sellado por OCR
+        archivo_foto_sellado = st.file_uploader("📷 Sube la foto del producto sellado (Opcional para leer nombre)", type=['jpg', 'png', 'jpeg'], key="foto_sellado")
+        
+        nombre_sugerido_ocr = ""
+        if archivo_foto_sellado:
+            img_sellado = Image.open(archivo_foto_sellado)
+            st.image(img_sellado, caption="Imagen del producto sellado", width=200)
+            nombre_sugerido_ocr = leer_producto_sellado_ocr(img_sellado)
+            st.info(f"💡 Texto detectado en la imagen: **{nombre_sugerido_ocr}**")
+
         tipo_sellado = st.selectbox("Categoría", ["Booster Box", "Elite Trainer Box (ETB)", "Caja de Colección", "Blister", "Otros"])
         
         custom_producto = ""
         if tipo_sellado == "Otros":
-            custom_producto = st.text_input("Especifica el producto (ej. Slim Booster Bundle):", value="Slim Booster Bundle")
+            custom_producto = st.text_input("Especifica el producto (ej. Slim Booster Bundle):", value=nombre_sugerido_ocr if nombre_sugerido_ocr else "Slim Booster Bundle")
             
         idioma_sellado = st.selectbox("Idioma", ["Inglés", "Español", "Japonés", "Chino"])
-        nombre_set = st.text_input("Nombre del Set o Colección (ej. 151, Evoluciones Paldea)")
+        nombre_set = st.text_input("Nombre del Set o Colección (ej. 151, Evoluciones Paldea)", value=nombre_sugerido_ocr if (not custom_producto and nombre_sugerido_ocr) else "")
         
-        # Combinamos el tipo de producto y el set para una búsqueda directa y precisa en Cardmarket
-        nombre_producto = custom_producto if tipo_sellado == "Otros" else tipo_sellado
-        busqueda_total = f"{nombre_producto} {nombre_set}".strip()
+        # Mapeo de categorías a IDs de Cardmarket
+        cat_ids = {
+            "Booster Box": "3",
+            "Elite Trainer Box (ETB)": "5",
+            "Caja de Colección": "6",
+            "Blister": "4",
+            "Otros": ""
+        }
+        cat_id = cat_ids.get(tipo_sellado, "")
         
-        url_cardmarket_sellado = f"https://www.cardmarket.com/en/Pokemon/Products/Search?searchString={busqueda_total.replace(' ', '+')}"
+        nombre_para_name = nombre_set.strip() if nombre_set.strip() else custom_producto.strip()
+        url_cardmarket_sellado = f"https://www.cardmarket.com/en/Pokemon/Products/Search?idCategory={cat_id}&name={nombre_para_name.replace(' ', '+')}"
         st.markdown(f"🔗 **[Entra en Cardmarket y busca el precio exacto de este producto]({url_cardmarket_sellado})**", unsafe_allow_html=True)
         
         precio_base_sellado = 45.00
