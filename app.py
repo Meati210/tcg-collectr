@@ -4,6 +4,7 @@ import pytesseract
 from PIL import Image
 from datetime import datetime, timedelta
 import requests
+import re
 
 # --- FUNCIONES PRINCIPALES ---
 
@@ -21,25 +22,50 @@ def leer_carta_con_ocr(imagen):
         return "Charizard"
 
 def obtener_precio_real(nombre_carta):
-    """Consulta la API oficial de Pokémon TCG para obtener el precio real de mercado en inglés."""
+    """Busca en la API barriendo múltiples resultados (hasta 50) para encontrar una versión con precio real."""
     try:
-        url = f"https://api.pokemontcg.io/v2/cards?q=name:{nombre_carta}"
+        # Extraer números si los hay (ej: "109" de "Charizard 109")
+        numeros = re.findall(r'\b\d+\b', nombre_carta)
+        # Limpiar el nombre quitando los números para la consulta general
+        nombre_limpio = re.sub(r'\b\d+\b', '', nombre_carta).strip()
+        
+        nombre_lower = nombre_limpio.lower()
+        if "charizard" in nombre_lower:
+            query_name = "Charizard"
+        else:
+            palabras = [p for p in nombre_limpio.replace('-', ' ').split() if len(p) > 2]
+            query_name = palabras[0] if palabras else nombre_limpio
+            
+        query = f"name:{query_name}"
+        if numeros:
+            query += f" number:{numeros[0]}"
+            
+        # Solicitamos hasta 50 resultados para encontrar una carta con precio válido
+        url = f"https://api.pokemontcg.io/v2/cards?q={query}&pageSize=50"
         response = requests.get(url, timeout=5)
         if response.status_code == 200:
             data = response.json().get("data", [])
+            if not data and numeros:
+                # Si con el número exacto no hay resultados, probamos solo con el nombre
+                url = f"https://api.pokemontcg.io/v2/cards?q=name:{query_name}&pageSize=50"
+                response = requests.get(url, timeout=5)
+                if response.status_code == 200:
+                    data = response.json().get("data", [])
+                    
             if data:
-                precios = data[0].get("tcgplayer", {}).get("prices", {})
-                for tipo in ["holofoil", "normal", "reverseHolofoil", "1stEditionHolofoil"]:
-                    if tipo in precios:
-                        market_price = precios[tipo].get("market")
-                        if market_price:
-                            return float(market_price)
+                # Recorremos todas las cartas encontradas hasta hallar una con precio de mercado
+                for carta in data:
+                    precios = carta.get("tcgplayer", {}).get("prices", {})
+                    for tipo in ["holofoil", "normal", "reverseHolofoil", "1stEditionHolofoil"]:
+                        if tipo in precios:
+                            market_price = precios[tipo].get("market")
+                            if market_price:
+                                return float(market_price)
         return None
     except Exception:
         return None
 
 def guardar_en_portafolio(nombre, idioma, tipo, precio_usuario, precio_ingles_ref):
-    # Calcula el factor de proporción respecto al precio en inglés
     factor = (precio_usuario / precio_ingles_ref) if precio_ingles_ref > 0 else 1.0
     
     nueva_fila = pd.DataFrame([{
@@ -58,7 +84,7 @@ def guardar_en_portafolio(nombre, idioma, tipo, precio_usuario, precio_ingles_re
 # --- INTERFAZ DE USUARIO ---
 
 st.set_page_config(page_title="Mi TCG Collectr Pro", layout="wide")
-st.title("🃏 Mi TCG Collectr (Sincronización Proporcional)")
+st.title("🃏 Mi TCG Collectr (Búsqueda Avanzada y Proporcional)")
 
 if 'portfolio' not in st.session_state:
     st.session_state.portfolio = pd.DataFrame(columns=["Item", "Tipo", "Idioma", "Precio Inglés Ref (€)", "Precio Actual (€)", "Factor Proporción"])
@@ -81,30 +107,28 @@ with col1:
             st.image(img, caption="Imagen cargada", width=200)
             
             nombre_sugerido_ocr = leer_carta_con_ocr(img)
-            st.info("💡 Corrige el nombre si el lector OCR ha fallado:")
+            st.info("💡 Consejo: Puedes escribir el nombre y su número (ej: 'Charizard 109') para afinar la búsqueda:")
             nombre_carta_input = st.text_input("Nombre de la carta:", value=nombre_sugerido_ocr)
             
             url_verificacion = f"https://www.google.com/search?q=pokemon+card+{nombre_carta_input.replace(' ' , '+')}"
             st.markdown(f"🔗 **[Verificar carta en Google]({url_verificacion})**", unsafe_allow_html=True)
             
             if st.button("Consultar Precio en la API"):
-                st.info(f"🔍 Buscando precio en inglés para: **{nombre_carta_input}**...")
+                st.info(f"🔍 Buscando entre las diferentes ediciones para: **{nombre_carta_input}**...")
                 precio_ingles = obtener_precio_real(nombre_carta_input)
                 
                 if precio_ingles:
-                    st.success(f"✅ Precio de referencia en inglés: **{precio_ingles} €**")
+                    st.success(f"✅ Precio de referencia encontrado: **{precio_ingles} €**")
                 else:
                     precio_ingles = 25.50
-                    st.warning("⚠️ No se halló en la API. Usando referencia estándar de 25.50 €.")
+                    st.warning("⚠️ No se halló precio automático para esta variante. Usando referencia estándar de 25.50 €.")
 
                 if idioma_carta == "Español":
                     st.warning("⚠️ Versión en español seleccionada. Puedes ajustar abajo el precio inicial a tu gusto.")
 
-                # Guardamos temporalmente en session_state para usarlo al confirmar
                 st.session_state.temp_precio_ingles = precio_ingles
                 st.session_state.temp_nombre = nombre_carta_input
 
-            # Si ya se consultó el precio, mostramos el campo para definir el precio inicial de la carta
             if 'temp_precio_ingles' in st.session_state:
                 precio_usuario_inicial = st.number_input(
                     "Precio inicial (€) para tu inventario:", 
@@ -159,7 +183,6 @@ with col2:
             use_container_width=True
         )
         
-        # Actualizamos el factor si el usuario edita manualmente el precio actual en la tabla
         for i in range(len(edited_df)):
             p_actual = edited_df.loc[i, "Precio Actual (€)"]
             p_ingles = edited_df.loc[i, "Precio Inglés Ref (€)"]
@@ -168,23 +191,19 @@ with col2:
                 
         st.session_state.portfolio = edited_df
         
-        # Botón para actualizar precios reales desde la API de forma proporcional
         if st.button("🔄 Actualizar Precios desde la API (Real y Proporcional)"):
             actualizados = 0
             for i, row in st.session_state.portfolio.iterrows():
-                # Si es una carta, consultamos su nombre real en la API
                 if row["Tipo"] == "Carta":
                     nuevo_ref = obtener_precio_real(row["Item"])
                     if nuevo_ref:
                         st.session_state.portfolio.loc[i, "Precio Inglés Ref (€)"] = float(nuevo_ref)
-                        # Multiplicamos el nuevo precio en inglés por el factor de la carta del usuario
                         factor = row["Factor Proporción"]
                         st.session_state.portfolio.loc[i, "Precio Actual (€)"] = round(float(nuevo_ref) * factor, 2)
                         actualizados += 1
             
             st.success(f"¡Se actualizó el mercado para {actualizados} cartas de forma proporcional!")
             
-            # Registrar en el historial
             nuevo_dia = datetime.now().strftime("%Y-%m-%d %H:%M")
             nuevo_valor = st.session_state.portfolio["Precio Actual (€)"].sum()
             nueva_fila_hist = pd.DataFrame([{"Fecha": nuevo_dia, "Valor Total (€)": nuevo_valor}])
