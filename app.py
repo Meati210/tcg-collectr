@@ -39,13 +39,12 @@ def leer_producto_sellado_ocr(imagen):
         img_rgb = imagen.convert('RGB')
         w, h = img_rgb.size
         
-        # Filtro suave y PSM 11 para no quemar la imagen de la caja CSV10C
         img_proc = img_rgb.resize((w * 2, h * 2), Image.Resampling.LANCZOS).convert('L')
         enhancer = ImageEnhance.Contrast(img_proc)
         img_proc = enhancer.enhance(1.5) 
         config_custom = r'--oem 3 --psm 11'
         
-        for lang in ['eng+chi_sim', 'eng']:
+        for lang in ['spa+eng+chi_sim', 'spa', 'eng']:
             try:
                 texto = pytesseract.image_to_string(img_proc, lang=lang, config=config_custom)
                 if texto.strip():
@@ -54,37 +53,64 @@ def leer_producto_sellado_ocr(imagen):
                 continue
                 
         if not texto_extraido.strip():
-            return "", "El OCR no vio letras claras. Prueba a recortar la foto dejando solo la esquina del código."
+            return "", "El OCR no vio letras claras."
             
-        texto_upper = texto_extraido.upper()
-        texto_clean = re.sub(r'\s+', '', texto_upper)
+        texto_lower = texto_extraido.lower()
+        texto_clean = re.sub(r'\s+', '', texto_lower)
         
-        # 1. Buscar los patrones específicos del set chino
-        if "CSV10" in texto_clean or "C5V10" in texto_clean or "共逐荣光" in texto_extraido or "SV10" in texto_clean:
-            return "CSV10C - 共逐荣光", texto_extraido
-
-        # 2. Buscar Pokémon 151
-        if "151" in texto_clean or "SV2A" in texto_clean:
-            if "SV2A" in texto_clean or "ポケモン151" in texto_extraido:
-                return "Pokémon 151 (Japanese)", texto_extraido
-            return "Pokémon 151", texto_extraido
-
-        # 3. Diccionario de sets occidentales (¡Lo que faltaba en la versión anterior!)
+        # Diccionario exhaustivo global (Megaevolución, Scarlet & Violet, Sword & Shield, Sun & Moon)
         sets_conocidos = {
-            "SSP": "Surging Sparks", "SURGING": "Surging Sparks",
-            "SCR": "Stellar Crown", "STELLAR": "Stellar Crown",
-            "SFA": "Shrouded Fable", "TWM": "Twilight Masquerade",
-            "TEF": "Temporal Forces", "PAR": "Paradox Rift",
-            "OBF": "Obsidian Flames", "PAL": "Paldea Evolved",
-            "SVI": "Scarlet & Violet Base", "PRE": "Prismatic Evolutions"
+            # Bloque Megaevolución & Novedades
+            "fuegos": "Lote de Sobres - Fuegos Fantasmales", "fantasmal": "Lote de Sobres - Fuegos Fantasmales", "phantasmal": "Lote de Sobres - Fuegos Fantasmales",
+            "ascended": "Ascended Heroes", "heroes": "Ascended Heroes",
+            "perfect": "Perfect Order", "orden": "Perfect Order",
+            "chaos": "Chaos Rising", "caos": "Chaos Rising",
+            "pitch": "Pitch Black", "darkrai": "Pitch Black",
+            "celebration": "30th Celebration", "30th": "30th Celebration",
+            "delta": "Delta Reign", "rayquaza": "Delta Reign",
+            
+            # Scarlet & Violet / Escarlata y Púrpura
+            "prismatic": "Prismatic Evolutions", "prismaticas": "Prismatic Evolutions", "pre": "Prismatic Evolutions",
+            "surging": "Surging Sparks", "chispas": "Surging Sparks", "ssp": "Surging Sparks",
+            "stellar": "Stellar Crown", "corona": "Stellar Crown", "scr": "Stellar Crown",
+            "shrouded": "Shrouded Fable", "fabulas": "Shrouded Fable", "sfa": "Shrouded Fable",
+            "twilight": "Twilight Masquerade", "mascarada": "Twilight Masquerade", "twm": "Twilight Masquerade",
+            "temporal": "Temporal Forces", "fuerzas": "Temporal Forces", "tef": "Temporal Forces",
+            "paradox": "Paradox Rift", "brechas": "Paradox Rift", "par": "Paradox Rift",
+            "obsidian": "Obsidian Flames", "llamas": "Obsidian Flames", "obf": "Obsidian Flames",
+            "paldea": "Paldea Evolved", "pal": "Paldea Evolved",
+            "scarlet": "Scarlet & Violet Base", "svi": "Scarlet & Violet Base",
+            "151": "Pokémon 151", "mew": "Pokémon 151", "sv2a": "Pokémon 151",
+            
+            # Set Chino específico
+            "csv10": "CSV10C - 共逐荣光", "c5v10": "CSV10C - 共逐荣光", "共逐荣光": "CSV10C - 共逐荣光",
+            
+            # Sword & Shield / Espada y Escudo
+            "evs": "Evolving Skies", "cielos": "Evolving Skies",
+            "brs": "Brilliant Stars", "astros": "Brilliant Stars",
+            "lor": "Lost Origin", "origen": "Lost Origin",
+            "crz": "Crown Zenith", "cenit": "Crown Zenith",
+            "cel": "Celebrations",
+            "ssh": "Sword & Shield Base", "rcl": "Rebel Clash",
+            "daa": "Darkness Ablaze", "viv": "Vivid Voltage",
+            "bst": "Battle Styles", "cre": "Chilling Reign",
+            "fst": "Fusion Strike", "asr": "Astral Radiance",
+            "sit": "Silver Tempest",
+            
+            # Sun & Moon / Sol y Luna
+            "sum": "Sun & Moon Base", "gri": "Guardians Rising",
+            "bus": "Burning Shadows", "cin": "Crimson Invasion",
+            "upr": "Ultra Prism", "fli": "Forbidden Light",
+            "ces": "Celestial Storm", "lot": "Lost Thunder",
+            "teu": "Team Up", "unb": "Unbroken Bonds",
+            "unm": "Unified Minds", "cec": "Cosmic Eclipse"
         }
         
-        for codigo_set, nombre_set in sets_conocidos.items():
-            if codigo_set in texto_upper:
+        for clave, nombre_set in sets_conocidos.items():
+            if clave in texto_lower or clave in texto_clean:
                 return nombre_set, texto_extraido
 
-        # 4. Códigos SV genéricos
-        match_sv = re.search(r'(SV\s*\d+[A-Z]?)', texto_extraido, re.IGNORECASE)
+        match_sv = re.search(r'(sv\s*\d+[a-z]?)', texto_extraido, re.IGNORECASE)
         if match_sv:
             return match_sv.group(1).replace(" ", "").upper(), texto_extraido
 
@@ -231,14 +257,14 @@ with col1:
                         st.warning("⚠️ No se pudo leer automáticamente. Escribe el set manualmente abajo.")
                         with st.expander("🛠️ ¿Por qué falló? (Despliega para ver el diagnóstico)"):
                             if "not found" in debug_text.lower() or "is not installed" in debug_text.lower() or "tesseract is not" in debug_text.lower():
-                                st.error("🚨 ¡FALTA TESSERACT! El servidor no tiene el lector instalado. Asegúrate de tener los archivos packages.txt y requirements.txt, y reinicia la app en Streamlit Cloud.")
+                                st.error("🚨 ¡FALTA TESSERACT! El servidor no tiene el lector instalado.")
                             else:
-                                st.write("El bot extrajo esta información de la imagen (prueba con mejor luz o quitando el reflejo):")
+                                st.write("El bot extrajo esta información de la imagen:")
                                 st.text(debug_text)
         else:
             st.session_state.last_sealed_file = None
 
-        tipo_sellado = st.selectbox("Categoría", ["Booster Box", "Elite Trainer Box (ETB)", "Caja de Colección", "Blister", "Otros"])
+        tipo_sellado = st.selectbox("Categoría", ["Booster Box", "Elite Trainer Box (ETB)", "Caja de Colección", "Blister", "Lote de Sobres", "Otros"])
         custom_producto = st.text_input("Especifica el producto:", value=st.session_state.auto_set_name) if tipo_sellado == "Otros" else ""
         idioma_sellado = st.selectbox("Idioma", ["Inglés", "Español", "Japonés", "Chino"])
         nombre_set = st.text_input("Nombre del Set o Colección", value=st.session_state.auto_set_name if tipo_sellado != "Otros" else "")
