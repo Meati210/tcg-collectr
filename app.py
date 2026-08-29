@@ -23,12 +23,11 @@ def leer_carta_con_ocr(imagen):
         return "Error de lectura"
 
 def buscar_precio_cardmarket(nombre_carta):
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     url = f"https://www.cardmarket.com/es/Pokemon/Products/Singles?searchString={nombre_carta}"
     
     try:
         response = requests.get(url, headers=headers, timeout=5)
-        # Si Cardmarket nos bloquea (error 403), devolvemos None para usar datos simulados
         if response.status_code != 200:
             return None, []
             
@@ -52,6 +51,19 @@ def buscar_precio_cardmarket(nombre_carta):
             
     except Exception as e:
         return None, []
+
+# --- NUEVA FUNCIÓN PARA GUARDAR SIN ERRORES ---
+def guardar_en_portafolio(nombre, precio):
+    nueva_fila = pd.DataFrame([{
+        "Carta": nombre, 
+        "Precio Inicial (€)": precio, 
+        "Precio Actual (€)": precio
+    }])
+    # Añade la carta a la tabla
+    st.session_state.portfolio = pd.concat([st.session_state.portfolio, nueva_fila], ignore_index=True)
+    # Suma el precio al gráfico
+    st.session_state.historial.loc[st.session_state.historial.index[-1], "Valor Total (€)"] += precio
+
 
 # --- INTERFAZ DE USUARIO ---
 
@@ -87,7 +99,7 @@ with col1:
             precio_medio, ultimos_precios = buscar_precio_cardmarket(nombre_detectado)
             
             if not precio_medio:
-                st.warning("Aviso: Cardmarket ha bloqueado la conexión (muy normal desde la nube). Usando datos simulados para probar la app.")
+                st.warning("Aviso: Cardmarket ha bloqueado la conexión. Usando datos simulados.")
                 precios_simulados = [12.50, 13.00, 11.90, 14.00, 12.00]
                 precio_medio = sum(precios_simulados) / len(precios_simulados)
                 ultimos_precios = precios_simulados
@@ -95,15 +107,8 @@ with col1:
             st.write(f"**Primeros 5 precios:** {ultimos_precios}")
             st.metric(label="Precio Medio Calculado", value=f"{precio_medio} €")
             
-            if st.button("Añadir al Portafolio"):
-                nueva_fila = pd.DataFrame([{
-                    "Carta": nombre_detectado, 
-                    "Precio Inicial (€)": precio_medio, 
-                    "Precio Actual (€)": precio_medio
-                }])
-                st.session_state.portfolio = pd.concat([st.session_state.portfolio, nueva_fila], ignore_index=True)
-                st.session_state.historial.loc[st.session_state.historial.index[-1], "Valor Total (€)"] += precio_medio
-                st.rerun()
+            # SOLUCIÓN: El botón ahora dispara el evento 'guardar_en_portafolio' inmediatamente
+            st.button("Añadir al Portafolio", on_click=guardar_en_portafolio, args=(nombre_detectado, precio_medio))
 
 with col2:
     st.header("Tu Portafolio")
