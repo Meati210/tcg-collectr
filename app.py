@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import requests
 import re
 
-# --- FUNCIONES PRINCIPALES CON FALLBACK DE IDIOMAS ---
+# --- FUNCIONES PRINCIPALES ---
 
 def leer_carta_con_ocr(imagen):
     try:
@@ -20,10 +20,8 @@ def leer_carta_con_ocr(imagen):
         for lang in ['chi_sim+eng+jpn+spa', 'chi_sim+eng', 'eng']:
             try:
                 texto = pytesseract.image_to_string(img_proc, lang=lang)
-                if texto.strip():
-                    break
-            except Exception:
-                continue
+                if texto.strip(): break
+            except: continue
                 
         palabras = texto.split()
         nombre_estimado = "Charizard"
@@ -32,10 +30,12 @@ def leer_carta_con_ocr(imagen):
                 nombre_estimado = palabra
                 break
         return nombre_estimado
-    except Exception as e:
+    except Exception:
         return "Charizard"
 
 def leer_producto_sellado_ocr(imagen):
+    errores = []
+    texto_extraido = ""
     try:
         img_rgb = imagen.convert('RGB')
         w, h = img_rgb.size
@@ -47,69 +47,58 @@ def leer_producto_sellado_ocr(imagen):
         sharpness = ImageEnhance.Sharpness(img_proc)
         img_proc = sharpness.enhance(2.5)
 
-        # Sistema de respaldo de idiomas por si el servidor no tiene alguno instalado
-        texto = ""
-        for lang in ['chi_sim+eng+jpn+spa', 'chi_sim+eng', 'eng']:
+        for lang in ['chi_sim+eng+jpn+spa', 'chi_sim', 'eng', None]:
             try:
-                texto = pytesseract.image_to_string(img_proc, lang=lang)
+                if lang:
+                    texto = pytesseract.image_to_string(img_proc, lang=lang)
+                else:
+                    texto = pytesseract.image_to_string(img_proc)
+                
                 if texto.strip():
+                    texto_extraido = texto
                     break
-            except Exception:
+            except Exception as e:
+                errores.append(str(e))
                 continue
                 
-        texto_upper = texto.upper()
+        if not texto_extraido.strip():
+            if errores:
+                return "", f"Error del servidor interno: {errores[0]}"
+            return "", "La imagen es muy borrosa o el servidor no vio letras."
+            
+        texto_upper = texto_extraido.upper()
         texto_clean = re.sub(r'\s+', '', texto_upper)
         
-        # 1. Chino / CSV10C / 共逐荣光
-        if "CSV10" in texto_clean or "CSV10C" in texto_clean or "共逐荣光" in texto:
-            return "CSV10C - 共逐荣光"
-            
-        match_csv = re.search(r'CSV\s*\d+\s*[A-Z]?', texto, re.IGNORECASE)
-        if match_csv:
-            codigo = match_csv.group(1).replace(" ", "").upper()
-            if "CSV10" in codigo:
-                return "CSV10C - 共逐荣光"
-            return codigo
+        match_csv = re.search(r'[CG][S5][V\\]\s*1\s*0\s*[C]?', texto_extraido, re.IGNORECASE)
+        if "CSV10" in texto_clean or "C5V10" in texto_clean or "共逐荣光" in texto_extraido or match_csv:
+            return "CSV10C - 共逐荣光", texto_extraido
 
-        # 2. Pokémon 151
-        if "151" in texto_clean or "ポケモン151" in texto or "SV2A" in texto_clean:
-            if "SV2A" in texto_clean or "ポケモン151" in texto:
-                return "Pokémon 151 (Japanese)"
-            return "Pokémon 151"
+        if "151" in texto_clean or "SV2A" in texto_clean:
+            if "SV2A" in texto_clean or "ポケモン151" in texto_extraido:
+                return "Pokémon 151 (Japanese)", texto_extraido
+            return "Pokémon 151", texto_extraido
 
-        # 3. Sets modernos conocidos en Inglés / Español / Japonés
         sets_conocidos = {
-            "SSP": "Surging Sparks",
-            "SURGING": "Surging Sparks",
-            "SCR": "Stellar Crown",
-            "STELLAR": "Stellar Crown",
-            "SFA": "Shrouded Fable",
-            "TWM": "Twilight Masquerade",
-            "TEF": "Temporal Forces",
-            "PAR": "Paradox Rift",
-            "OBF": "Obsidian Flames",
-            "PAL": "Paldea Evolved",
-            "SVI": "Scarlet & Violet Base",
-            "PRE": "Prismatic Evolutions",
-            "PRISMATIC": "Prismatic Evolutions"
+            "SSP": "Surging Sparks", "SURGING": "Surging Sparks",
+            "SCR": "Stellar Crown", "STELLAR": "Stellar Crown",
+            "SFA": "Shrouded Fable", "TWM": "Twilight Masquerade",
+            "TEF": "Temporal Forces", "PAR": "Paradox Rift",
+            "OBF": "Obsidian Flames", "PAL": "Paldea Evolved",
+            "SVI": "Scarlet & Violet Base", "PRE": "Prismatic Evolutions"
         }
         
         for codigo_set, nombre_set in sets_conocidos.items():
             if codigo_set in texto_upper:
-                return nombre_set
+                return nombre_set, texto_extraido
 
-        match_sv = re.search(r'(SV\s*\d+[A-Z]?)', texto, re.IGNORECASE)
+        match_sv = re.search(r'(SV\s*\d+[A-Z]?)', texto_extraido, re.IGNORECASE)
         if match_sv:
-            return match_sv.group(1).replace(" ", "").upper()
+            return match_sv.group(1).replace(" ", "").upper(), texto_extraido
 
-        lineas = [line.strip() for line in texto.split('\n') if len(line.strip()) > 2]
-        for l in lineas:
-            if len(l) > 3 and not l.isdigit():
-                return l
-                
-        return ""
+        return "", texto_extraido
+        
     except Exception as e:
-        return ""
+        return "", f"Error crítico: {str(e)}"
 
 def obtener_precio_real(nombre_carta):
     try:
@@ -151,11 +140,8 @@ def obtener_precio_real(nombre_carta):
 
 def guardar_en_portafolio(nombre, idioma, tipo, precio_usuario, precio_ingles_ref):
     factor = (precio_usuario / precio_ingles_ref) if precio_ingles_ref > 0 else 1.0
-    
     nueva_fila = pd.DataFrame([{
-        "Item": nombre, 
-        "Tipo": tipo,
-        "Idioma": idioma,
+        "Item": nombre, "Tipo": tipo, "Idioma": idioma,
         "Precio Inglés Ref (€)": float(precio_ingles_ref),
         "Precio Actual (€)": float(precio_usuario),
         "Factor Proporción": float(factor)
@@ -175,7 +161,6 @@ if 'portfolio' not in st.session_state:
 if 'historial' not in st.session_state:
     fechas = [(datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(4, -1, -1)]
     st.session_state.historial = pd.DataFrame({"Fecha": fechas, "Valor Total (€)": [0.0, 0.0, 0.0, 0.0, 0.0]})
-
 if 'last_sealed_file' not in st.session_state:
     st.session_state.last_sealed_file = None
 if 'auto_set_name' not in st.session_state:
@@ -212,27 +197,19 @@ with col1:
                     precio_ingles = 25.50
                     st.warning("⚠️ No se halló precio automático para esta variante. Usando referencia estándar de 25.50 €.")
 
-                if idioma_carta == "Español":
-                    st.warning("⚠️ Versión en español seleccionada. Puedes ajustar abajo el precio inicial a tu gusto.")
-
                 st.session_state.temp_precio_ingles = precio_ingles
                 st.session_state.temp_nombre = nombre_carta_input
 
             if 'temp_precio_ingles' in st.session_state:
                 precio_usuario_inicial = st.number_input(
                     "Precio inicial (€) para tu inventario:", 
-                    min_value=0.0, 
-                    value=float(st.session_state.temp_precio_ingles), 
-                    step=0.5
+                    min_value=0.0, value=float(st.session_state.temp_precio_ingles), step=0.5
                 )
                 
                 if st.button("Confirmar y Guardar en Portafolio"):
                     guardar_en_portafolio(
-                        st.session_state.temp_nombre, 
-                        idioma_carta, 
-                        "Carta", 
-                        precio_usuario_inicial, 
-                        st.session_state.temp_precio_ingles
+                        st.session_state.temp_nombre, idioma_carta, "Carta", 
+                        precio_usuario_inicial, st.session_state.temp_precio_ingles
                     )
                     st.success("¡Carta guardada con éxito!")
                     del st.session_state.temp_precio_ingles
@@ -247,44 +224,33 @@ with col1:
             if st.session_state.last_sealed_file != archivo_foto_sellado.name:
                 st.session_state.last_sealed_file = archivo_foto_sellado.name
                 img_sellado = Image.open(archivo_foto_sellado)
-                with st.spinner("🤖 Leyendo imagen con OCR avanzado..."):
-                    detectado = leer_producto_sellado_ocr(img_sellado)
+                
+                with st.spinner("🤖 Leyendo imagen minuciosamente..."):
+                    detectado, debug_text = leer_producto_sellado_ocr(img_sellado)
+                    
                     if detectado:
                         st.session_state.auto_set_name = detectado
-                        st.success(f"✨ ¡Detectado y autorellenado con éxito: **{detectado}**!")
+                        st.success(f"✨ ¡Detectado y autorellenado: **{detectado}**!")
+                        with st.expander("🛠️ Ver qué leyó el robot (Diagnóstico)"):
+                            st.text(debug_text)
                     else:
                         st.session_state.auto_set_name = ""
                         st.warning("⚠️ No se pudo leer automáticamente. Escribe el set manualmente abajo.")
+                        with st.expander("🛠️ ¿Por qué falló? (Despliega para ver el diagnóstico)"):
+                            if "not found" in debug_text.lower() or "is not installed" in debug_text.lower() or "tesseract is not" in debug_text.lower():
+                                st.error("🚨 ¡FALTA TESSERACT! El servidor no tiene el lector instalado. Asegúrate de tener los archivos packages.txt y requirements.txt, y reinicia la app en Streamlit Cloud.")
+                            else:
+                                st.write("El bot extrajo esta información de la imagen (prueba con mejor luz o quitando el reflejo):")
+                                st.text(debug_text)
         else:
             st.session_state.last_sealed_file = None
 
         tipo_sellado = st.selectbox("Categoría", ["Booster Box", "Elite Trainer Box (ETB)", "Caja de Colección", "Blister", "Otros"])
-        
-        custom_producto = ""
-        if tipo_sellado == "Otros":
-            custom_producto = st.text_input("Especifica el producto:", value=st.session_state.auto_set_name)
-            
+        custom_producto = st.text_input("Especifica el producto:", value=st.session_state.auto_set_name) if tipo_sellado == "Otros" else ""
         idioma_sellado = st.selectbox("Idioma", ["Inglés", "Español", "Japonés", "Chino"])
-        
-        nombre_set = st.text_input("Nombre del Set o Colección (ej. CSV10C - 共逐荣光, Surging Sparks, 151)", value=st.session_state.auto_set_name if tipo_sellado != "Otros" else "")
-        
-        cat_ids = {
-            "Booster Box": "3",
-            "Elite Trainer Box (ETB)": "5",
-            "Caja de Colección": "6",
-            "Blister": "4",
-            "Otros": ""
-        }
-        cat_id = cat_ids.get(tipo_sellado, "")
-        
-        nombre_para_name = nombre_set.strip() if nombre_set.strip() else custom_producto.strip()
-        url_cardmarket_sellado = f"https://www.cardmarket.com/en/Pokemon/Products/Search?idCategory={cat_id}&name={nombre_para_name.replace(' ', '+')}"
-        st.markdown(f"🔗 **[Entra en Cardmarket y busca el precio exacto de este producto]({url_cardmarket_sellado})**", unsafe_allow_html=True)
+        nombre_set = st.text_input("Nombre del Set o Colección", value=st.session_state.auto_set_name if tipo_sellado != "Otros" else "")
         
         precio_base_sellado = 45.00
-        if idioma_sellado == "Español":
-            st.warning("⚠️ Referencia de precio basada en versión en inglés o manual.")
-            
         precio_sellado_usuario = st.number_input("Precio inicial / estimado (€):", min_value=0.0, value=precio_base_sellado, step=1.0)
         
         if st.button("Añadir Producto Sellado"):
@@ -298,7 +264,6 @@ with col1:
 
 with col2:
     st.header("Tu Portafolio Dinámico")
-    
     st.subheader("Inventario (Edita el 'Precio Actual' cuando quieras)")
     
     if not st.session_state.portfolio.empty:
@@ -329,7 +294,6 @@ with col2:
                         actualizados += 1
             
             st.success(f"¡Se actualizó el mercado para {actualizados} cartas de forma proporcional!")
-            
             nuevo_dia = datetime.now().strftime("%Y-%m-%d %H:%M")
             nuevo_valor = st.session_state.portfolio["Precio Actual (€)"].sum()
             nueva_fila_hist = pd.DataFrame([{"Fecha": nuevo_dia, "Valor Total (€)": nuevo_valor}])
