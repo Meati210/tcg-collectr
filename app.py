@@ -155,19 +155,11 @@ with col1:
         idioma_sellado = st.selectbox("Idioma", ["Inglés", "Español", "Japonés", "Chino"])
         nombre_set = st.text_input("Nombre del Set o Colección (ej. 151, Evoluciones Paldea)")
         
-        # Mapeo de categorías a IDs de Cardmarket
-        cat_ids = {
-            "Booster Box": "3",
-            "Elite Trainer Box (ETB)": "5",
-            "Caja de Colección": "6",
-            "Blister": "4",
-            "Otros": ""
-        }
-        cat_id = cat_ids.get(tipo_sellado, "")
+        # Combinamos el tipo de producto y el set para una búsqueda directa y precisa en Cardmarket
+        nombre_producto = custom_producto if tipo_sellado == "Otros" else tipo_sellado
+        busqueda_total = f"{nombre_producto} {nombre_set}".strip()
         
-        # Enviamos el nombre del set directamente al parámetro 'name' de Cardmarket
-        nombre_para_name = nombre_set.strip()
-        url_cardmarket_sellado = f"https://www.cardmarket.com/en/Pokemon/Products/Search?idCategory={cat_id}&name={nombre_para_name.replace(' ', '+')}"
+        url_cardmarket_sellado = f"https://www.cardmarket.com/en/Pokemon/Products/Search?searchString={busqueda_total.replace(' ', '+')}"
         st.markdown(f"🔗 **[Entra en Cardmarket y busca el precio exacto de este producto]({url_cardmarket_sellado})**", unsafe_allow_html=True)
         
         precio_base_sellado = 45.00
