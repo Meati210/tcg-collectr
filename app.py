@@ -10,27 +10,43 @@ import re
 
 def leer_carta_con_ocr(imagen):
     try:
-        texto = pytesseract.image_to_string(imagen)
+        # Soporte para Chino, Inglés y Japonés en cartas
+        texto = pytesseract.image_to_string(imagen, lang='chi_sim+eng+jpn')
         palabras = texto.split()
         nombre_estimado = "Charizard"
         for palabra in palabras:
-            if len(palabra) > 4 and palabra.isalpha():
+            if len(palabra) > 3:
                 nombre_estimado = palabra
                 break
         return nombre_estimado
     except Exception as e:
+        try:
+            texto = pytesseract.image_to_string(imagen)
+            palabras = texto.split()
+            for palabra in palabras:
+                if len(palabra) > 4 and palabra.isalpha():
+                    return palabra
+        except:
+            pass
         return "Charizard"
 
 def leer_producto_sellado_ocr(imagen):
     try:
-        texto = pytesseract.image_to_string(imagen)
+        # Intentamos leer con soporte para chino, japonés e inglés
+        texto = pytesseract.image_to_string(imagen, lang='chi_sim+eng+jpn')
         lineas = [line.strip() for line in texto.split('\n') if line.strip()]
         if lineas:
-            # Devuelve las primeras líneas relevantes encontradas en la caja/producto
-            return " ".join(lineas[:2])
-        return "Producto Sellado"
+            texto_limpio = " ".join(lineas[:2])
+            if len(texto_limpio) > 2 and "Producto" not in texto_limpio:
+                return texto_limpio
+        return ""
     except Exception as e:
-        return "Producto Sellado"
+        try:
+            texto = pytesseract.image_to_string(imagen, lang='eng')
+            lineas = [line.strip() for line in texto.split('\n') if line.strip()]
+            return " ".join(lineas[:2]) if lineas else ""
+        except:
+            return ""
 
 def obtener_precio_real(nombre_carta):
     """Busca en la API barriendo múltiples resultados (hasta 50) para encontrar una versión con precio real."""
@@ -158,24 +174,26 @@ with col1:
     else:
         st.subheader("Producto Sellado")
         
-        # Opcional: Subir foto para detectar el producto sellado por OCR
-        archivo_foto_sellado = st.file_uploader("📷 Sube la foto del producto sellado (Opcional para leer nombre)", type=['jpg', 'png', 'jpeg'], key="foto_sellado")
+        archivo_foto_sellado = st.file_uploader("📷 Sube la foto del producto sellado (Opcional)", type=['jpg', 'png', 'jpeg'], key="foto_sellado")
         
         nombre_sugerido_ocr = ""
         if archivo_foto_sellado:
             img_sellado = Image.open(archivo_foto_sellado)
             st.image(img_sellado, caption="Imagen del producto sellado", width=200)
             nombre_sugerido_ocr = leer_producto_sellado_ocr(img_sellado)
-            st.info(f"💡 Texto detectado en la imagen: **{nombre_sugerido_ocr}**")
+            if nombre_sugerido_ocr:
+                st.info(f"💡 Texto detectado: **{nombre_sugerido_ocr}**")
+            else:
+                st.info("💡 No se pudo extraer texto automático, escribe el set abajo.")
 
         tipo_sellado = st.selectbox("Categoría", ["Booster Box", "Elite Trainer Box (ETB)", "Caja de Colección", "Blister", "Otros"])
         
         custom_producto = ""
         if tipo_sellado == "Otros":
-            custom_producto = st.text_input("Especifica el producto (ej. Slim Booster Bundle):", value=nombre_sugerido_ocr if nombre_sugerido_ocr else "Slim Booster Bundle")
+            custom_producto = st.text_input("Especifica el producto:", value=nombre_sugerido_ocr if nombre_sugerido_ocr else "Booster Box")
             
         idioma_sellado = st.selectbox("Idioma", ["Inglés", "Español", "Japonés", "Chino"])
-        nombre_set = st.text_input("Nombre del Set o Colección (ej. 151, Evoluciones Paldea)", value=nombre_sugerido_ocr if (not custom_producto and nombre_sugerido_ocr) else "")
+        nombre_set = st.text_input("Nombre del Set o Colección (ej. Chasing Glory Together, 151)", value=nombre_sugerido_ocr if (tipo_sellado != "Otros" and nombre_sugerido_ocr) else "")
         
         # Mapeo de categorías a IDs de Cardmarket
         cat_ids = {
