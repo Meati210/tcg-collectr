@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import requests
 import re
 
-# --- FUNCIONES PRINCIPALES ---
+# --- FUNCIONES PRINCIPALES CON FALLBACK DE IDIOMAS ---
 
 def leer_carta_con_ocr(imagen):
     try:
@@ -16,7 +16,15 @@ def leer_carta_con_ocr(imagen):
         enhancer = ImageEnhance.Contrast(img_proc)
         img_proc = enhancer.enhance(2.0)
         
-        texto = pytesseract.image_to_string(img_proc, lang='chi_sim+eng+jpn+spa')
+        texto = ""
+        for lang in ['chi_sim+eng+jpn+spa', 'chi_sim+eng', 'eng']:
+            try:
+                texto = pytesseract.image_to_string(img_proc, lang=lang)
+                if texto.strip():
+                    break
+            except Exception:
+                continue
+                
         palabras = texto.split()
         nombre_estimado = "Charizard"
         for palabra in palabras:
@@ -29,7 +37,6 @@ def leer_carta_con_ocr(imagen):
 
 def leer_producto_sellado_ocr(imagen):
     try:
-        # Preprocesamiento avanzado para multidioma (Español, Inglés, Japonés, Chino)
         img_rgb = imagen.convert('RGB')
         w, h = img_rgb.size
         img_proc = img_rgb.resize((w * 3, h * 3), Image.Resampling.LANCZOS).convert('L')
@@ -40,12 +47,20 @@ def leer_producto_sellado_ocr(imagen):
         sharpness = ImageEnhance.Sharpness(img_proc)
         img_proc = sharpness.enhance(2.5)
 
-        # Multilenguaje habilitado
-        texto = pytesseract.image_to_string(img_proc, lang='chi_sim+eng+jpn+spa')
+        # Sistema de respaldo de idiomas por si el servidor no tiene alguno instalado
+        texto = ""
+        for lang in ['chi_sim+eng+jpn+spa', 'chi_sim+eng', 'eng']:
+            try:
+                texto = pytesseract.image_to_string(img_proc, lang=lang)
+                if texto.strip():
+                    break
+            except Exception:
+                continue
+                
         texto_upper = texto.upper()
         texto_clean = re.sub(r'\s+', '', texto_upper)
         
-        # 1. Chino / CSV10C
+        # 1. Chino / CSV10C / 共逐荣光
         if "CSV10" in texto_clean or "CSV10C" in texto_clean or "共逐荣光" in texto:
             return "CSV10C - 共逐荣光"
             
@@ -56,7 +71,7 @@ def leer_producto_sellado_ocr(imagen):
                 return "CSV10C - 共逐荣光"
             return codigo
 
-        # 2. Pokémon 151 (Global: Inglés, Español, Japonés, Chino)
+        # 2. Pokémon 151
         if "151" in texto_clean or "ポケモン151" in texto or "SV2A" in texto_clean:
             if "SV2A" in texto_clean or "ポケモン151" in texto:
                 return "Pokémon 151 (Japanese)"
@@ -83,7 +98,6 @@ def leer_producto_sellado_ocr(imagen):
             if codigo_set in texto_upper:
                 return nombre_set
 
-        # Patrón genérico para códigos de expansión (ej. SV1, SV03, etc.)
         match_sv = re.search(r'(SV\s*\d+[A-Z]?)', texto, re.IGNORECASE)
         if match_sv:
             return match_sv.group(1).replace(" ", "").upper()
@@ -162,7 +176,6 @@ if 'historial' not in st.session_state:
     fechas = [(datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(4, -1, -1)]
     st.session_state.historial = pd.DataFrame({"Fecha": fechas, "Valor Total (€)": [0.0, 0.0, 0.0, 0.0, 0.0]})
 
-# Estados para autocompletado de sellados
 if 'last_sealed_file' not in st.session_state:
     st.session_state.last_sealed_file = None
 if 'auto_set_name' not in st.session_state:
@@ -234,7 +247,7 @@ with col1:
             if st.session_state.last_sealed_file != archivo_foto_sellado.name:
                 st.session_state.last_sealed_file = archivo_foto_sellado.name
                 img_sellado = Image.open(archivo_foto_sellado)
-                with st.spinner("🤖 Leyendo imagen (multidioma: ES, EN, JP, ZH)..."):
+                with st.spinner("🤖 Leyendo imagen con OCR avanzado..."):
                     detectado = leer_producto_sellado_ocr(img_sellado)
                     if detectado:
                         st.session_state.auto_set_name = detectado
@@ -255,7 +268,6 @@ with col1:
         
         nombre_set = st.text_input("Nombre del Set o Colección (ej. CSV10C - 共逐荣光, Surging Sparks, 151)", value=st.session_state.auto_set_name if tipo_sellado != "Otros" else "")
         
-        # Mapeo de categorías a IDs de Cardmarket
         cat_ids = {
             "Booster Box": "3",
             "Elite Trainer Box (ETB)": "5",
