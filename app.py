@@ -39,15 +39,12 @@ def leer_producto_sellado_ocr(imagen):
         img_rgb = imagen.convert('RGB')
         w, h = img_rgb.size
         
-        # Ampliamos la imagen pero con un contraste mucho más suave (1.5 en vez de 3.0)
+        # Filtro suave y PSM 11 para no quemar la imagen de la caja CSV10C
         img_proc = img_rgb.resize((w * 2, h * 2), Image.Resampling.LANCZOS).convert('L')
         enhancer = ImageEnhance.Contrast(img_proc)
         img_proc = enhancer.enhance(1.5) 
-
-        # Modo PSM 11: Le dice a Tesseract que busque texto disperso por todas partes
         config_custom = r'--oem 3 --psm 11'
         
-        # Solo probamos las combinaciones que importan para no saturarlo
         for lang in ['eng+chi_sim', 'eng']:
             try:
                 texto = pytesseract.image_to_string(img_proc, lang=lang, config=config_custom)
@@ -62,12 +59,34 @@ def leer_producto_sellado_ocr(imagen):
         texto_upper = texto_extraido.upper()
         texto_clean = re.sub(r'\s+', '', texto_upper)
         
-        # Buscar los patrones específicos del set chino
+        # 1. Buscar los patrones específicos del set chino
         if "CSV10" in texto_clean or "C5V10" in texto_clean or "共逐荣光" in texto_extraido or "SV10" in texto_clean:
             return "CSV10C - 共逐荣光", texto_extraido
 
+        # 2. Buscar Pokémon 151
         if "151" in texto_clean or "SV2A" in texto_clean:
+            if "SV2A" in texto_clean or "ポケモン151" in texto_extraido:
+                return "Pokémon 151 (Japanese)", texto_extraido
             return "Pokémon 151", texto_extraido
+
+        # 3. Diccionario de sets occidentales (¡Lo que faltaba en la versión anterior!)
+        sets_conocidos = {
+            "SSP": "Surging Sparks", "SURGING": "Surging Sparks",
+            "SCR": "Stellar Crown", "STELLAR": "Stellar Crown",
+            "SFA": "Shrouded Fable", "TWM": "Twilight Masquerade",
+            "TEF": "Temporal Forces", "PAR": "Paradox Rift",
+            "OBF": "Obsidian Flames", "PAL": "Paldea Evolved",
+            "SVI": "Scarlet & Violet Base", "PRE": "Prismatic Evolutions"
+        }
+        
+        for codigo_set, nombre_set in sets_conocidos.items():
+            if codigo_set in texto_upper:
+                return nombre_set, texto_extraido
+
+        # 4. Códigos SV genéricos
+        match_sv = re.search(r'(SV\s*\d+[A-Z]?)', texto_extraido, re.IGNORECASE)
+        if match_sv:
+            return match_sv.group(1).replace(" ", "").upper(), texto_extraido
 
         return "", texto_extraido
         
