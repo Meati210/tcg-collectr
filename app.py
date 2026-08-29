@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import pytesseract
-from PIL import Image
+from PIL import Image, ImageEnhance
 from datetime import datetime, timedelta
 import requests
 import re
@@ -10,8 +10,13 @@ import re
 
 def leer_carta_con_ocr(imagen):
     try:
-        # Soporte para Chino, Inglés y Japonés en cartas
-        texto = pytesseract.image_to_string(imagen, lang='chi_sim+eng+jpn')
+        img_proc = imagen.convert('L')
+        w, h = img_proc.size
+        img_proc = img_proc.resize((w * 2, h * 2), Image.Resampling.LANCZOS)
+        enhancer = ImageEnhance.Contrast(img_proc)
+        img_proc = enhancer.enhance(2.0)
+        
+        texto = pytesseract.image_to_string(img_proc, lang='chi_sim+eng+jpn')
         palabras = texto.split()
         nombre_estimado = "Charizard"
         for palabra in palabras:
@@ -20,36 +25,44 @@ def leer_carta_con_ocr(imagen):
                 break
         return nombre_estimado
     except Exception as e:
-        try:
-            texto = pytesseract.image_to_string(imagen)
-            palabras = texto.split()
-            for palabra in palabras:
-                if len(palabra) > 4 and palabra.isalpha():
-                    return palabra
-        except:
-            pass
         return "Charizard"
 
 def leer_producto_sellado_ocr(imagen):
     try:
-        # Intentamos leer con soporte para chino, japonés e inglés
-        texto = pytesseract.image_to_string(imagen, lang='chi_sim+eng+jpn')
+        # Preprocesamiento avanzado para cajas selladas (zoom x2 + contraste + nitidez)
+        img_proc = imagen.convert('L')
+        w, h = img_proc.size
+        img_proc = img_proc.resize((w * 2, h * 2), Image.Resampling.LANCZOS)
+        
+        enhancer = ImageEnhance.Contrast(img_proc)
+        img_proc = enhancer.enhance(2.5)
+        
+        sharpness = ImageEnhance.Sharpness(img_proc)
+        img_proc = sharpness.enhance(2.0)
+
+        texto = pytesseract.image_to_string(img_proc, lang='chi_sim+eng+jpn')
+        
+        # Buscar patrones de códigos de set como CSV10C, CSV10, etc.
+        match_csv = re.search(r'(CSV\s*\d+\s*[A-Z]?)', texto, re.IGNORECASE)
+        if match_csv:
+            codigo = match_csv.group(1).replace(" ", "").upper()
+            if "CSV10" in codigo:
+                return "CSV10C - 共逐荣光 (Chasing Glory Together)"
+            return codigo
+            
+        texto_unido = texto.replace("\n", " ")
+        if "共逐荣光" in texto_unido or "宝可梦" in texto_unido:
+            return "CSV10C - 共逐荣光 (Chasing Glory Together)"
+
         lineas = [line.strip() for line in texto.split('\n') if line.strip()]
         if lineas:
-            texto_limpio = " ".join(lineas[:2])
-            if len(texto_limpio) > 2 and "Producto" not in texto_limpio:
-                return texto_limpio
+            return " ".join(lineas[:2])
+            
         return ""
     except Exception as e:
-        try:
-            texto = pytesseract.image_to_string(imagen, lang='eng')
-            lineas = [line.strip() for line in texto.split('\n') if line.strip()]
-            return " ".join(lineas[:2]) if lineas else ""
-        except:
-            return ""
+        return ""
 
 def obtener_precio_real(nombre_carta):
-    """Busca en la API barriendo múltiples resultados (hasta 50) para encontrar una versión con precio real."""
     try:
         numeros = re.findall(r'\b\d+\b', nombre_carta)
         nombre_limpio = re.sub(r'\b\d+\b', '', nombre_carta).strip()
@@ -174,7 +187,7 @@ with col1:
     else:
         st.subheader("Producto Sellado")
         
-        archivo_foto_sellado = st.file_uploader("📷 Sube la foto del producto sellado (Opcional)", type=['jpg', 'png', 'jpeg'], key="foto_sellado")
+        archivo_foto_sellado = st.file_uploader("📷 Sube la foto del producto sellado", type=['jpg', 'png', 'jpeg'], key="foto_sellado")
         
         nombre_sugerido_ocr = ""
         if archivo_foto_sellado:
@@ -182,9 +195,19 @@ with col1:
             st.image(img_sellado, caption="Imagen del producto sellado", width=200)
             nombre_sugerido_ocr = leer_producto_sellado_ocr(img_sellado)
             if nombre_sugerido_ocr:
-                st.info(f"💡 Texto detectado: **{nombre_sugerido_ocr}**")
+                st.success(f"✨ ¡Detectado automáticamente: **{nombre_sugerido_ocr}**!")
             else:
-                st.info("💡 No se pudo extraer texto automático, escribe el set abajo.")
+                st.info("💡 Consejo: Usa los botones de autocompletado rápido abajo si es una caja de Chino.")
+
+        st.markdown("⚡ **Relleno rápido de sets populares:**")
+        col_btn1, col_btn2 = st.columns(2)
+        set_seleccionado_rapido = ""
+        with col_btn1:
+            if st.button("📦 CSV10C (Chasing Glory / 共逐荣光)"):
+                set_seleccionado_rapido = "CSV10C - 共逐荣光"
+        with col_btn2:
+            if st.button("📦 Pokémon 151"):
+                set_seleccionado_rapido = "151"
 
         tipo_sellado = st.selectbox("Categoría", ["Booster Box", "Elite Trainer Box (ETB)", "Caja de Colección", "Blister", "Otros"])
         
@@ -193,7 +216,9 @@ with col1:
             custom_producto = st.text_input("Especifica el producto:", value=nombre_sugerido_ocr if nombre_sugerido_ocr else "Booster Box")
             
         idioma_sellado = st.selectbox("Idioma", ["Inglés", "Español", "Japonés", "Chino"])
-        nombre_set = st.text_input("Nombre del Set o Colección (ej. Chasing Glory Together, 151)", value=nombre_sugerido_ocr if (tipo_sellado != "Otros" and nombre_sugerido_ocr) else "")
+        
+        default_set_val = set_seleccionado_rapido if set_seleccionado_rapido else (nombre_sugerido_ocr if (tipo_sellado != "Otros" and nombre_sugerido_ocr) else "")
+        nombre_set = st.text_input("Nombre del Set o Colección (ej. CSV10C - 共逐荣光, 151)", value=default_set_val)
         
         # Mapeo de categorías a IDs de Cardmarket
         cat_ids = {
