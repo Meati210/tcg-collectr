@@ -105,7 +105,6 @@ with col1:
             st.info("💡 Consejo: Puedes escribir el nombre y su número (ej: 'Charizard 109') para afinar la búsqueda:")
             nombre_carta_input = st.text_input("Nombre de la carta:", value=nombre_sugerido_ocr)
             
-            # Enlace directo a Cardmarket con el texto solicitado
             url_cardmarket = f"https://www.cardmarket.com/en/Pokemon/Products/Search?searchString={nombre_carta_input.replace(' ' , '+')}"
             st.markdown(f"🔗 **[Entra en Cardmarket y selecciona el idioma para precio concreto en otros idiomas]({url_cardmarket})**", unsafe_allow_html=True)
             
@@ -147,24 +146,34 @@ with col1:
 
     else:
         st.subheader("Producto Sellado")
-        tipo_sellado = st.selectbox("Tipo de producto", ["Booster Box", "Elite Trainer Box (ETB)", "Caja de Colección", "Blister"])
+        tipo_sellado = st.selectbox("Tipo de producto", ["Booster Box", "Elite Trainer Box (ETB)", "Caja de Colección", "Blister", "Otros"])
+        
+        custom_producto = ""
+        if tipo_sellado == "Otros":
+            custom_producto = st.text_input("Especifica el producto (ej. Slim Booster Bundle):", value="Slim Booster Bundle")
+            
         idioma_sellado = st.selectbox("Idioma", ["Inglés", "Español", "Japonés", "Chino"])
-        nombre_set = st.text_input("Nombre del Set (ej. 151, Evoluciones Paldea)")
+        nombre_set = st.text_input("Nombre del Set o Colección (ej. 151, Evoluciones Paldea)")
+        
+        # Generar enlace dinámico a Cardmarket para productos sellados
+        busqueda_texto = f"{custom_producto if tipo_sellado == 'Otros' else tipo_sellado} {nombre_set}".strip()
+        url_cardmarket_sellado = f"https://www.cardmarket.com/en/Pokemon/Products/Search?searchString={busqueda_texto.replace(' ', '+')}"
+        st.markdown(f"🔗 **[Entra en Cardmarket y busca el precio exacto de este producto]({url_cardmarket_sellado})**", unsafe_allow_html=True)
         
         precio_base_sellado = 45.00
         if idioma_sellado == "Español":
-            st.warning("⚠️ Referencia de precio basada en versión en inglés.")
+            st.warning("⚠️ Referencia de precio basada en versión en inglés o manual.")
             
-        precio_sellado_usuario = st.number_input("Precio inicial (€)", min_value=0.0, value=precio_base_sellado, step=1.0)
+        precio_sellado_usuario = st.number_input("Precio inicial / estimado (€):", min_value=0.0, value=precio_base_sellado, step=1.0)
         
         if st.button("Añadir Producto Sellado"):
-            if nombre_set.strip() != "":
-                nombre_completo = f"{tipo_sellado} - {nombre_set}"
+            nombre_completo = f"{custom_producto} - {nombre_set}" if tipo_sellado == "Otros" else f"{tipo_sellado} - {nombre_set}"
+            if nombre_set.strip() != "" or (tipo_sellado == "Otros" and custom_producto.strip() != ""):
                 guardar_en_portafolio(nombre_completo, idioma_sellado, "Sellado", precio_sellado_usuario, precio_base_sellado)
                 st.success("¡Producto sellado añadido correctamente!")
                 st.rerun()
             else:
-                st.error("Por favor, introduce el nombre del set.")
+                st.error("Por favor, rellena los campos necesarios del producto.")
 
 with col2:
     st.header("Tu Portafolio Dinámico")
