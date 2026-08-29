@@ -21,7 +21,7 @@ def leer_carta_con_ocr(imagen):
         return "Charizard"
 
 def obtener_precio_real(nombre_carta):
-    """Consulta la API oficial de Pokémon TCG para obtener el precio real de mercado automáticamente."""
+    """Consulta la API oficial de Pokémon TCG para obtener el precio real de mercado en inglés."""
     try:
         url = f"https://api.pokemontcg.io/v2/cards?q=name:{nombre_carta}"
         response = requests.get(url, timeout=5)
@@ -38,13 +38,17 @@ def obtener_precio_real(nombre_carta):
     except Exception:
         return None
 
-def guardar_en_portafolio(nombre, idioma, tipo, precio):
+def guardar_en_portafolio(nombre, idioma, tipo, precio_usuario, precio_ingles_ref):
+    # Calcula el factor de proporción respecto al precio en inglés
+    factor = (precio_usuario / precio_ingles_ref) if precio_ingles_ref > 0 else 1.0
+    
     nueva_fila = pd.DataFrame([{
         "Item": nombre, 
         "Tipo": tipo,
         "Idioma": idioma,
-        "Precio Base (€)": float(precio),
-        "Precio Actual (€)": float(precio)
+        "Precio Inglés Ref (€)": float(precio_ingles_ref),
+        "Precio Actual (€)": float(precio_usuario),
+        "Factor Proporción": float(factor)
     }])
     st.session_state.portfolio = pd.concat([st.session_state.portfolio, nueva_fila], ignore_index=True)
     total_actual = st.session_state.portfolio["Precio Actual (€)"].sum()
@@ -54,10 +58,10 @@ def guardar_en_portafolio(nombre, idioma, tipo, precio):
 # --- INTERFAZ DE USUARIO ---
 
 st.set_page_config(page_title="Mi TCG Collectr Pro", layout="wide")
-st.title("🃏 Mi TCG Collectr (Precios Reales Automáticos)")
+st.title("🃏 Mi TCG Collectr (Sincronización Proporcional)")
 
 if 'portfolio' not in st.session_state:
-    st.session_state.portfolio = pd.DataFrame(columns=["Item", "Tipo", "Idioma", "Precio Base (€)", "Precio Actual (€)"])
+    st.session_state.portfolio = pd.DataFrame(columns=["Item", "Tipo", "Idioma", "Precio Inglés Ref (€)", "Precio Actual (€)", "Factor Proporción"])
 if 'historial' not in st.session_state:
     fechas = [(datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(4, -1, -1)]
     st.session_state.historial = pd.DataFrame({"Fecha": fechas, "Valor Total (€)": [0.0, 0.0, 0.0, 0.0, 0.0]})
@@ -76,30 +80,50 @@ with col1:
             img = Image.open(archivo_foto)
             st.image(img, caption="Imagen cargada", width=200)
             
-            # Detección y consulta de precio real en la API
-            nombre_detectado = leer_carta_con_ocr(img)
-            st.info(f"🔍 Consultando precio real de mercado para: **{nombre_detectado}**...")
+            nombre_sugerido_ocr = leer_carta_con_ocr(img)
+            st.info("💡 Corrige el nombre si el lector OCR ha fallado:")
+            nombre_carta_input = st.text_input("Nombre de la carta:", value=nombre_sugerido_ocr)
             
-            precio_real = obtener_precio_real(nombre_detectado)
+            url_verificacion = f"https://www.google.com/search?q=pokemon+card+{nombre_carta_input.replace(' ' , '+')}"
+            st.markdown(f"🔗 **[Verificar carta en Google]({url_verificacion})**", unsafe_allow_html=True)
             
-            if precio_real:
-                st.success(f"✅ ¡Precio real encontrado en la API: **{precio_real} €**!")
-                precio_sugerido = precio_real
-            else:
-                st.warning("⚠️ No se encontró precio automático exacto. Usando valor de referencia.")
-                precio_sugerido = 25.50
+            if st.button("Consultar Precio en la API"):
+                st.info(f"🔍 Buscando precio en inglés para: **{nombre_carta_input}**...")
+                precio_ingles = obtener_precio_real(nombre_carta_input)
+                
+                if precio_ingles:
+                    st.success(f"✅ Precio de referencia en inglés: **{precio_ingles} €**")
+                else:
+                    precio_ingles = 25.50
+                    st.warning("⚠️ No se halló en la API. Usando referencia estándar de 25.50 €.")
 
-            if idioma_carta == "Español":
-                st.warning("⚠️ Aviso: El mercado internacional puede variar para versiones en español.")
-            elif idioma_carta in ["Japonés", "Chino"]:
-                st.warning("⚠️ Aviso: Versión asiática detectada.")
+                if idioma_carta == "Español":
+                    st.warning("⚠️ Versión en español seleccionada. Puedes ajustar abajo el precio inicial a tu gusto.")
 
-            precio_usuario = st.number_input("Precio inicial (€):", min_value=0.0, value=float(precio_sugerido), step=0.5)
-            
-            if st.button("Confirmar y Guardar en Portafolio"):
-                guardar_en_portafolio(nombre_detectado, idioma_carta, "Carta", precio_usuario)
-                st.success("¡Carta guardada con éxito!")
-                st.rerun()
+                # Guardamos temporalmente en session_state para usarlo al confirmar
+                st.session_state.temp_precio_ingles = precio_ingles
+                st.session_state.temp_nombre = nombre_carta_input
+
+            # Si ya se consultó el precio, mostramos el campo para definir el precio inicial de la carta
+            if 'temp_precio_ingles' in st.session_state:
+                precio_usuario_inicial = st.number_input(
+                    "Precio inicial (€) para tu inventario:", 
+                    min_value=0.0, 
+                    value=float(st.session_state.temp_precio_ingles), 
+                    step=0.5
+                )
+                
+                if st.button("Confirmar y Guardar en Portafolio"):
+                    guardar_en_portafolio(
+                        st.session_state.temp_nombre, 
+                        idioma_carta, 
+                        "Carta", 
+                        precio_usuario_inicial, 
+                        st.session_state.temp_precio_ingles
+                    )
+                    st.success("¡Carta guardada con éxito!")
+                    del st.session_state.temp_precio_ingles
+                    st.rerun()
 
     else:
         st.subheader("Producto Sellado")
@@ -109,14 +133,14 @@ with col1:
         
         precio_base_sellado = 45.00
         if idioma_sellado == "Español":
-            st.warning("⚠️ Aviso: Referencia de precio basada en versión en inglés.")
+            st.warning("⚠️ Referencia de precio basada en versión en inglés.")
             
         precio_sellado_usuario = st.number_input("Precio inicial (€)", min_value=0.0, value=precio_base_sellado, step=1.0)
         
         if st.button("Añadir Producto Sellado"):
             if nombre_set.strip() != "":
                 nombre_completo = f"{tipo_sellado} - {nombre_set}"
-                guardar_en_portafolio(nombre_completo, idioma_sellado, "Sellado", precio_sellado_usuario)
+                guardar_en_portafolio(nombre_completo, idioma_sellado, "Sellado", precio_sellado_usuario, precio_base_sellado)
                 st.success("¡Producto sellado añadido correctamente!")
                 st.rerun()
             else:
@@ -125,7 +149,7 @@ with col1:
 with col2:
     st.header("Tu Portafolio Dinámico")
     
-    st.subheader("Inventario (Puedes editar el 'Precio Actual' haciendo clic)")
+    st.subheader("Inventario (Edita el 'Precio Actual' cuando quieras)")
     
     if not st.session_state.portfolio.empty:
         edited_df = st.data_editor(
@@ -134,13 +158,39 @@ with col2:
             key="portfolio_editor",
             use_container_width=True
         )
+        
+        # Actualizamos el factor si el usuario edita manualmente el precio actual en la tabla
+        for i in range(len(edited_df)):
+            p_actual = edited_df.loc[i, "Precio Actual (€)"]
+            p_ingles = edited_df.loc[i, "Precio Inglés Ref (€)"]
+            if p_ingles > 0:
+                edited_df.loc[i, "Factor Proporción"] = p_actual / p_ingles
+                
         st.session_state.portfolio = edited_df
         
-        # Botón para restaurar si te equivocas editando
-        if st.button("🔄 Restaurar Precios Base (Deshacer cambios manuales)"):
-            st.session_state.portfolio["Precio Actual (€)"] = st.session_state.portfolio["Precio Base (€)"]
-            st.success("¡Precios restablecidos a su valor base original!")
+        # Botón para actualizar precios reales desde la API de forma proporcional
+        if st.button("🔄 Actualizar Precios desde la API (Real y Proporcional)"):
+            actualizados = 0
+            for i, row in st.session_state.portfolio.iterrows():
+                # Si es una carta, consultamos su nombre real en la API
+                if row["Tipo"] == "Carta":
+                    nuevo_ref = obtener_precio_real(row["Item"])
+                    if nuevo_ref:
+                        st.session_state.portfolio.loc[i, "Precio Inglés Ref (€)"] = float(nuevo_ref)
+                        # Multiplicamos el nuevo precio en inglés por el factor de la carta del usuario
+                        factor = row["Factor Proporción"]
+                        st.session_state.portfolio.loc[i, "Precio Actual (€)"] = round(float(nuevo_ref) * factor, 2)
+                        actualizados += 1
+            
+            st.success(f"¡Se actualizó el mercado para {actualizados} cartas de forma proporcional!")
+            
+            # Registrar en el historial
+            nuevo_dia = datetime.now().strftime("%Y-%m-%d %H:%M")
+            nuevo_valor = st.session_state.portfolio["Precio Actual (€)"].sum()
+            nueva_fila_hist = pd.DataFrame([{"Fecha": nuevo_dia, "Valor Total (€)": nuevo_valor}])
+            st.session_state.historial = pd.concat([st.session_state.historial, nueva_fila_hist], ignore_index=True)
             st.rerun()
+            
     else:
         st.info("Tu portafolio está vacío. Añade cartas o productos a la izquierda.")
 
