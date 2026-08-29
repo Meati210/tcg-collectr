@@ -34,71 +34,45 @@ def leer_carta_con_ocr(imagen):
         return "Charizard"
 
 def leer_producto_sellado_ocr(imagen):
-    errores = []
     texto_extraido = ""
     try:
         img_rgb = imagen.convert('RGB')
         w, h = img_rgb.size
-        img_proc = img_rgb.resize((w * 3, h * 3), Image.Resampling.LANCZOS).convert('L')
         
+        # Ampliamos la imagen pero con un contraste mucho más suave (1.5 en vez de 3.0)
+        img_proc = img_rgb.resize((w * 2, h * 2), Image.Resampling.LANCZOS).convert('L')
         enhancer = ImageEnhance.Contrast(img_proc)
-        img_proc = enhancer.enhance(3.0)
-        
-        sharpness = ImageEnhance.Sharpness(img_proc)
-        img_proc = sharpness.enhance(2.5)
+        img_proc = enhancer.enhance(1.5) 
 
-        for lang in ['chi_sim+eng+jpn+spa', 'chi_sim', 'eng', None]:
+        # Modo PSM 11: Le dice a Tesseract que busque texto disperso por todas partes
+        config_custom = r'--oem 3 --psm 11'
+        
+        # Solo probamos las combinaciones que importan para no saturarlo
+        for lang in ['eng+chi_sim', 'eng']:
             try:
-                if lang:
-                    texto = pytesseract.image_to_string(img_proc, lang=lang)
-                else:
-                    texto = pytesseract.image_to_string(img_proc)
-                
+                texto = pytesseract.image_to_string(img_proc, lang=lang, config=config_custom)
                 if texto.strip():
-                    texto_extraido = texto
-                    break
-            except Exception as e:
-                errores.append(str(e))
+                    texto_extraido += " " + texto
+            except:
                 continue
                 
         if not texto_extraido.strip():
-            if errores:
-                return "", f"Error del servidor interno: {errores[0]}"
-            return "", "La imagen es muy borrosa o el servidor no vio letras."
+            return "", "El OCR no vio letras claras. Prueba a recortar la foto dejando solo la esquina del código."
             
         texto_upper = texto_extraido.upper()
         texto_clean = re.sub(r'\s+', '', texto_upper)
         
-        match_csv = re.search(r'[CG][S5][V\\]\s*1\s*0\s*[C]?', texto_extraido, re.IGNORECASE)
-        if "CSV10" in texto_clean or "C5V10" in texto_clean or "共逐荣光" in texto_extraido or match_csv:
+        # Buscar los patrones específicos del set chino
+        if "CSV10" in texto_clean or "C5V10" in texto_clean or "共逐荣光" in texto_extraido or "SV10" in texto_clean:
             return "CSV10C - 共逐荣光", texto_extraido
 
         if "151" in texto_clean or "SV2A" in texto_clean:
-            if "SV2A" in texto_clean or "ポケモン151" in texto_extraido:
-                return "Pokémon 151 (Japanese)", texto_extraido
             return "Pokémon 151", texto_extraido
-
-        sets_conocidos = {
-            "SSP": "Surging Sparks", "SURGING": "Surging Sparks",
-            "SCR": "Stellar Crown", "STELLAR": "Stellar Crown",
-            "SFA": "Shrouded Fable", "TWM": "Twilight Masquerade",
-            "TEF": "Temporal Forces", "PAR": "Paradox Rift",
-            "OBF": "Obsidian Flames", "PAL": "Paldea Evolved",
-            "SVI": "Scarlet & Violet Base", "PRE": "Prismatic Evolutions"
-        }
-        
-        for codigo_set, nombre_set in sets_conocidos.items():
-            if codigo_set in texto_upper:
-                return nombre_set, texto_extraido
-
-        match_sv = re.search(r'(SV\s*\d+[A-Z]?)', texto_extraido, re.IGNORECASE)
-        if match_sv:
-            return match_sv.group(1).replace(" ", "").upper(), texto_extraido
 
         return "", texto_extraido
         
     except Exception as e:
-        return "", f"Error crítico: {str(e)}"
+        return "", f"Error crítico al procesar: {str(e)}"
 
 def obtener_precio_real(nombre_carta):
     try:
