@@ -58,18 +58,29 @@ def leer_producto_sellado_ocr(imagen):
         texto_lower = texto_extraido.lower()
         texto_clean = re.sub(r'\s+', '', texto_lower)
         
-        # Diccionario exhaustivo global (Megaevolución, Scarlet & Violet, Sword & Shield, Sun & Moon)
+        # --- 1. PRIORIDAD MÁXIMA: Novedades y Megaevolución ---
+        sets_prioritarios = {
+            "fuegos": "Lote de Sobres - Fuegos Fantasmales", 
+            "fantasmal": "Lote de Sobres - Fuegos Fantasmales", 
+            "phantasmal": "Lote de Sobres - Fuegos Fantasmales",
+            "megaevolucion": "Lote de Sobres - Fuegos Fantasmales",
+            "csv10": "CSV10C - 共逐荣光", 
+            "c5v10": "CSV10C - 共逐荣光", 
+            "共逐荣光": "CSV10C - 共逐荣光",
+            "ascended": "Ascended Heroes", 
+            "perfect": "Perfect Order", 
+            "chaos": "Chaos Rising", 
+            "pitch": "Pitch Black", 
+            "30th": "30th Celebration", 
+            "delta": "Delta Reign"
+        }
+        
+        for clave, nombre_set in sets_prioritarios.items():
+            if clave in texto_lower or clave in texto_clean:
+                return nombre_set, texto_extraido
+
+        # --- 2. RESTO DE SETS (Histórico) ---
         sets_conocidos = {
-            # Bloque Megaevolución & Novedades
-            "fuegos": "Lote de Sobres - Fuegos Fantasmales", "fantasmal": "Lote de Sobres - Fuegos Fantasmales", "phantasmal": "Lote de Sobres - Fuegos Fantasmales",
-            "ascended": "Ascended Heroes", "heroes": "Ascended Heroes",
-            "perfect": "Perfect Order", "orden": "Perfect Order",
-            "chaos": "Chaos Rising", "caos": "Chaos Rising",
-            "pitch": "Pitch Black", "darkrai": "Pitch Black",
-            "celebration": "30th Celebration", "30th": "30th Celebration",
-            "delta": "Delta Reign", "rayquaza": "Delta Reign",
-            
-            # Scarlet & Violet / Escarlata y Púrpura
             "prismatic": "Prismatic Evolutions", "prismaticas": "Prismatic Evolutions", "pre": "Prismatic Evolutions",
             "surging": "Surging Sparks", "chispas": "Surging Sparks", "ssp": "Surging Sparks",
             "stellar": "Stellar Crown", "corona": "Stellar Crown", "scr": "Stellar Crown",
@@ -82,28 +93,18 @@ def leer_producto_sellado_ocr(imagen):
             "scarlet": "Scarlet & Violet Base", "svi": "Scarlet & Violet Base",
             "151": "Pokémon 151", "mew": "Pokémon 151", "sv2a": "Pokémon 151",
             
-            # Set Chino específico
-            "csv10": "CSV10C - 共逐荣光", "c5v10": "CSV10C - 共逐荣光", "共逐荣光": "CSV10C - 共逐荣光",
+            # Sword & Shield
+            "evs": "Evolving Skies", "brs": "Brilliant Stars", "lor": "Lost Origin", 
+            "crz": "Crown Zenith", "cel": "Celebrations", "ssh": "Sword & Shield Base", 
+            "rcl": "Rebel Clash", "daa": "Darkness Ablaze", "viv": "Vivid Voltage", 
+            "bst": "Battle Styles", "cre": "Chilling Reign", "fst": "Fusion Strike", 
+            "asr": "Astral Radiance", "sit": "Silver Tempest",
             
-            # Sword & Shield / Espada y Escudo
-            "evs": "Evolving Skies", "cielos": "Evolving Skies",
-            "brs": "Brilliant Stars", "astros": "Brilliant Stars",
-            "lor": "Lost Origin", "origen": "Lost Origin",
-            "crz": "Crown Zenith", "cenit": "Crown Zenith",
-            "cel": "Celebrations",
-            "ssh": "Sword & Shield Base", "rcl": "Rebel Clash",
-            "daa": "Darkness Ablaze", "viv": "Vivid Voltage",
-            "bst": "Battle Styles", "cre": "Chilling Reign",
-            "fst": "Fusion Strike", "asr": "Astral Radiance",
-            "sit": "Silver Tempest",
-            
-            # Sun & Moon / Sol y Luna
-            "sum": "Sun & Moon Base", "gri": "Guardians Rising",
-            "bus": "Burning Shadows", "cin": "Crimson Invasion",
-            "upr": "Ultra Prism", "fli": "Forbidden Light",
-            "ces": "Celestial Storm", "lot": "Lost Thunder",
-            "teu": "Team Up", "unb": "Unbroken Bonds",
-            "unm": "Unified Minds", "cec": "Cosmic Eclipse"
+            # Sun & Moon
+            "sum": "Sun & Moon Base", "gri": "Guardians Rising", "bus": "Burning Shadows", 
+            "cin": "Crimson Invasion", "upr": "Ultra Prism", "fli": "Forbidden Light", 
+            "ces": "Celestial Storm", "lot": "Lost Thunder", "teu": "Team Up", 
+            "unb": "Unbroken Bonds", "unm": "Unified Minds", "cec": "Cosmic Eclipse"
         }
         
         for clave, nombre_set in sets_conocidos.items():
