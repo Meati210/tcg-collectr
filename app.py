@@ -155,11 +155,19 @@ with col1:
         idioma_sellado = st.selectbox("Idioma", ["Inglés", "Español", "Japonés", "Chino"])
         nombre_set = st.text_input("Nombre del Set o Colección (ej. 151, Evoluciones Paldea)")
         
-        # Construcción limpia de la consulta combinando producto y set para el buscador global de Cardmarket
-        nombre_producto = custom_producto if tipo_sellado == "Otros" else tipo_sellado
-        busqueda_total = f"{nombre_producto} {nombre_set}".strip()
+        # Mapeo de categorías a IDs de Cardmarket
+        cat_ids = {
+            "Booster Box": "3",
+            "Elite Trainer Box (ETB)": "5",
+            "Caja de Colección": "6",
+            "Blister": "4",
+            "Otros": ""
+        }
+        cat_id = cat_ids.get(tipo_sellado, "")
         
-        url_cardmarket_sellado = f"https://www.cardmarket.com/en/Pokemon/Products/Search?searchString={busqueda_total.replace(' ', '+')}"
+        # Enviamos el nombre del set directamente al parámetro 'name' de Cardmarket
+        nombre_para_name = nombre_set.strip()
+        url_cardmarket_sellado = f"https://www.cardmarket.com/en/Pokemon/Products/Search?idCategory={cat_id}&name={nombre_para_name.replace(' ', '+')}"
         st.markdown(f"🔗 **[Entra en Cardmarket y busca el precio exacto de este producto]({url_cardmarket_sellado})**", unsafe_allow_html=True)
         
         precio_base_sellado = 45.00
@@ -205,7 +213,7 @@ with col2:
                     nuevo_ref = obtener_precio_real(row["Item"])
                     if nuevo_ref:
                         st.session_state.portfolio.loc[i, "Precio Inglés Ref (€)"] = float(nuevo_ref)
-                        factor = row["Factor Proporción"]->
+                        factor = row["Factor Proporción"]
                         st.session_state.portfolio.loc[i, "Precio Actual (€)"] = round(float(nuevo_ref) * factor, 2)
                         actualizados += 1
             
