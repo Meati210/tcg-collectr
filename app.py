@@ -24,9 +24,7 @@ def leer_carta_con_ocr(imagen):
 def obtener_precio_real(nombre_carta):
     """Busca en la API barriendo múltiples resultados (hasta 50) para encontrar una versión con precio real."""
     try:
-        # Extraer números si los hay (ej: "109" de "Charizard 109")
         numeros = re.findall(r'\b\d+\b', nombre_carta)
-        # Limpiar el nombre quitando los números para la consulta general
         nombre_limpio = re.sub(r'\b\d+\b', '', nombre_carta).strip()
         
         nombre_lower = nombre_limpio.lower()
@@ -40,20 +38,17 @@ def obtener_precio_real(nombre_carta):
         if numeros:
             query += f" number:{numeros[0]}"
             
-        # Solicitamos hasta 50 resultados para encontrar una carta con precio válido
         url = f"https://api.pokemontcg.io/v2/cards?q={query}&pageSize=50"
         response = requests.get(url, timeout=5)
         if response.status_code == 200:
             data = response.json().get("data", [])
             if not data and numeros:
-                # Si con el número exacto no hay resultados, probamos solo con el nombre
                 url = f"https://api.pokemontcg.io/v2/cards?q=name:{query_name}&pageSize=50"
                 response = requests.get(url, timeout=5)
                 if response.status_code == 200:
                     data = response.json().get("data", [])
                     
             if data:
-                # Recorremos todas las cartas encontradas hasta hallar una con precio de mercado
                 for carta in data:
                     precios = carta.get("tcgplayer", {}).get("prices", {})
                     for tipo in ["holofoil", "normal", "reverseHolofoil", "1stEditionHolofoil"]:
@@ -110,8 +105,9 @@ with col1:
             st.info("💡 Consejo: Puedes escribir el nombre y su número (ej: 'Charizard 109') para afinar la búsqueda:")
             nombre_carta_input = st.text_input("Nombre de la carta:", value=nombre_sugerido_ocr)
             
-            url_verificacion = f"https://www.google.com/search?q=pokemon+card+{nombre_carta_input.replace(' ' , '+')}"
-            st.markdown(f"🔗 **[Verificar carta en Google]({url_verificacion})**", unsafe_allow_html=True)
+            # Enlace directo a Cardmarket con el texto solicitado
+            url_cardmarket = f"https://www.cardmarket.com/en/Pokemon/Products/Search?searchString={nombre_carta_input.replace(' ' , '+')}"
+            st.markdown(f"🔗 **[Entra en Cardmarket y selecciona el idioma para precio concreto en otros idiomas]({url_cardmarket})**", unsafe_allow_html=True)
             
             if st.button("Consultar Precio en la API"):
                 st.info(f"🔍 Buscando entre las diferentes ediciones para: **{nombre_carta_input}**...")
