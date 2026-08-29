@@ -164,11 +164,10 @@ with col1:
             "Otros": ""
         }
         cat_id = cat_ids.get(tipo_sellado, "")
-        nombre_producto = custom_producto if tipo_sellado == "Otros" else tipo_sellado
         set_expansion = nombre_set.strip()
         
-        # Enlace separando categoría (idCategory), nombre (name) y expansión (expansion)
-        url_cardmarket_sellado = f"https://www.cardmarket.com/en/Pokemon/Products/Search?idCategory={cat_id}&name={nombre_producto.replace(' ', '+')}&expansion={set_expansion.replace(' ', '+')}"
+        # Enlace pasando la categoría y el nombre del set directamente al parámetro 'name'
+        url_cardmarket_sellado = f"https://www.cardmarket.com/en/Pokemon/Products/Search?idCategory={cat_id}&name={set_expansion.replace(' ', '+')}"
         st.markdown(f"🔗 **[Entra en Cardmarket y busca el precio exacto de este producto]({url_cardmarket_sellado})**", unsafe_allow_html=True)
         
         precio_base_sellado = 45.00
