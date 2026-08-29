@@ -146,7 +146,7 @@ with col1:
 
     else:
         st.subheader("Producto Sellado")
-        tipo_sellado = st.selectbox("Tipo de producto", ["Booster Box", "Elite Trainer Box (ETB)", "Caja de Colección", "Blister", "Otros"])
+        tipo_sellado = st.selectbox("Categoría", ["Booster Box", "Elite Trainer Box (ETB)", "Caja de Colección", "Blister", "Otros"])
         
         custom_producto = ""
         if tipo_sellado == "Otros":
@@ -155,9 +155,20 @@ with col1:
         idioma_sellado = st.selectbox("Idioma", ["Inglés", "Español", "Japonés", "Chino"])
         nombre_set = st.text_input("Nombre del Set o Colección (ej. 151, Evoluciones Paldea)")
         
-        # Generar enlace dinámico a Cardmarket para productos sellados
-        busqueda_texto = f"{custom_producto if tipo_sellado == 'Otros' else tipo_sellado} {nombre_set}".strip()
-        url_cardmarket_sellado = f"https://www.cardmarket.com/en/Pokemon/Products/Search?searchString={busqueda_texto.replace(' ', '+')}"
+        # Mapeo de categorías a IDs de Cardmarket
+        cat_ids = {
+            "Booster Box": "3",
+            "Elite Trainer Box (ETB)": "5",
+            "Caja de Colección": "6",
+            "Blister": "4",
+            "Otros": ""
+        }
+        cat_id = cat_ids.get(tipo_sellado, "")
+        nombre_producto = custom_producto if tipo_sellado == "Otros" else tipo_sellado
+        set_expansion = nombre_set.strip()
+        
+        # Enlace separando categoría (idCategory), nombre (name) y expansión (expansion)
+        url_cardmarket_sellado = f"https://www.cardmarket.com/en/Pokemon/Products/Search?idCategory={cat_id}&name={nombre_producto.replace(' ', '+')}&expansion={set_expansion.replace(' ', '+')}"
         st.markdown(f"🔗 **[Entra en Cardmarket y busca el precio exacto de este producto]({url_cardmarket_sellado})**", unsafe_allow_html=True)
         
         precio_base_sellado = 45.00
