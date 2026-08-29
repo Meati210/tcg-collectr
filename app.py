@@ -16,7 +16,7 @@ def leer_carta_con_ocr(imagen):
         enhancer = ImageEnhance.Contrast(img_proc)
         img_proc = enhancer.enhance(2.0)
         
-        texto = pytesseract.image_to_string(img_proc, lang='chi_sim+eng+jpn')
+        texto = pytesseract.image_to_string(img_proc, lang='chi_sim+eng+jpn+spa')
         palabras = texto.split()
         nombre_estimado = "Charizard"
         for palabra in palabras:
@@ -29,35 +29,70 @@ def leer_carta_con_ocr(imagen):
 
 def leer_producto_sellado_ocr(imagen):
     try:
-        # Preprocesamiento avanzado para cajas selladas (zoom x2 + contraste + nitidez)
-        img_proc = imagen.convert('L')
-        w, h = img_proc.size
-        img_proc = img_proc.resize((w * 2, h * 2), Image.Resampling.LANCZOS)
+        # Preprocesamiento avanzado para multidioma (Español, Inglés, Japonés, Chino)
+        img_rgb = imagen.convert('RGB')
+        w, h = img_rgb.size
+        img_proc = img_rgb.resize((w * 3, h * 3), Image.Resampling.LANCZOS).convert('L')
         
         enhancer = ImageEnhance.Contrast(img_proc)
-        img_proc = enhancer.enhance(2.5)
+        img_proc = enhancer.enhance(3.0)
         
         sharpness = ImageEnhance.Sharpness(img_proc)
-        img_proc = sharpness.enhance(2.0)
+        img_proc = sharpness.enhance(2.5)
 
-        texto = pytesseract.image_to_string(img_proc, lang='chi_sim+eng+jpn')
+        # Multilenguaje habilitado
+        texto = pytesseract.image_to_string(img_proc, lang='chi_sim+eng+jpn+spa')
+        texto_upper = texto.upper()
+        texto_clean = re.sub(r'\s+', '', texto_upper)
         
-        # Buscar patrones de códigos de set como CSV10C, CSV10, etc.
-        match_csv = re.search(r'(CSV\s*\d+\s*[A-Z]?)', texto, re.IGNORECASE)
+        # 1. Chino / CSV10C
+        if "CSV10" in texto_clean or "CSV10C" in texto_clean or "共逐荣光" in texto:
+            return "CSV10C - 共逐荣光"
+            
+        match_csv = re.search(r'CSV\s*\d+\s*[A-Z]?', texto, re.IGNORECASE)
         if match_csv:
             codigo = match_csv.group(1).replace(" ", "").upper()
             if "CSV10" in codigo:
-                return "CSV10C - 共逐荣光 (Chasing Glory Together)"
+                return "CSV10C - 共逐荣光"
             return codigo
-            
-        texto_unido = texto.replace("\n", " ")
-        if "共逐荣光" in texto_unido or "宝可梦" in texto_unido:
-            return "CSV10C - 共逐荣光 (Chasing Glory Together)"
 
-        lineas = [line.strip() for line in texto.split('\n') if line.strip()]
-        if lineas:
-            return " ".join(lineas[:2])
-            
+        # 2. Pokémon 151 (Global: Inglés, Español, Japonés, Chino)
+        if "151" in texto_clean or "ポケモン151" in texto or "SV2A" in texto_clean:
+            if "SV2A" in texto_clean or "ポケモン151" in texto:
+                return "Pokémon 151 (Japanese)"
+            return "Pokémon 151"
+
+        # 3. Sets modernos conocidos en Inglés / Español / Japonés
+        sets_conocidos = {
+            "SSP": "Surging Sparks",
+            "SURGING": "Surging Sparks",
+            "SCR": "Stellar Crown",
+            "STELLAR": "Stellar Crown",
+            "SFA": "Shrouded Fable",
+            "TWM": "Twilight Masquerade",
+            "TEF": "Temporal Forces",
+            "PAR": "Paradox Rift",
+            "OBF": "Obsidian Flames",
+            "PAL": "Paldea Evolved",
+            "SVI": "Scarlet & Violet Base",
+            "PRE": "Prismatic Evolutions",
+            "PRISMATIC": "Prismatic Evolutions"
+        }
+        
+        for codigo_set, nombre_set in sets_conocidos.items():
+            if codigo_set in texto_upper:
+                return nombre_set
+
+        # Patrón genérico para códigos de expansión (ej. SV1, SV03, etc.)
+        match_sv = re.search(r'(SV\s*\d+[A-Z]?)', texto, re.IGNORECASE)
+        if match_sv:
+            return match_sv.group(1).replace(" ", "").upper()
+
+        lineas = [line.strip() for line in texto.split('\n') if len(line.strip()) > 2]
+        for l in lineas:
+            if len(l) > 3 and not l.isdigit():
+                return l
+                
         return ""
     except Exception as e:
         return ""
@@ -127,6 +162,12 @@ if 'historial' not in st.session_state:
     fechas = [(datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(4, -1, -1)]
     st.session_state.historial = pd.DataFrame({"Fecha": fechas, "Valor Total (€)": [0.0, 0.0, 0.0, 0.0, 0.0]})
 
+# Estados para autocompletado de sellados
+if 'last_sealed_file' not in st.session_state:
+    st.session_state.last_sealed_file = None
+if 'auto_set_name' not in st.session_state:
+    st.session_state.auto_set_name = ""
+
 col1, col2 = st.columns([1, 2])
 
 with col1:
@@ -189,36 +230,30 @@ with col1:
         
         archivo_foto_sellado = st.file_uploader("📷 Sube la foto del producto sellado", type=['jpg', 'png', 'jpeg'], key="foto_sellado")
         
-        nombre_sugerido_ocr = ""
-        if archivo_foto_sellado:
-            img_sellado = Image.open(archivo_foto_sellado)
-            st.image(img_sellado, caption="Imagen del producto sellado", width=200)
-            nombre_sugerido_ocr = leer_producto_sellado_ocr(img_sellado)
-            if nombre_sugerido_ocr:
-                st.success(f"✨ ¡Detectado automáticamente: **{nombre_sugerido_ocr}**!")
-            else:
-                st.info("💡 Consejo: Usa los botones de autocompletado rápido abajo si es una caja de Chino.")
-
-        st.markdown("⚡ **Relleno rápido de sets populares:**")
-        col_btn1, col_btn2 = st.columns(2)
-        set_seleccionado_rapido = ""
-        with col_btn1:
-            if st.button("📦 CSV10C (Chasing Glory / 共逐荣光)"):
-                set_seleccionado_rapido = "CSV10C - 共逐荣光"
-        with col_btn2:
-            if st.button("📦 Pokémon 151"):
-                set_seleccionado_rapido = "151"
+        if archivo_foto_sellado is not None:
+            if st.session_state.last_sealed_file != archivo_foto_sellado.name:
+                st.session_state.last_sealed_file = archivo_foto_sellado.name
+                img_sellado = Image.open(archivo_foto_sellado)
+                with st.spinner("🤖 Leyendo imagen (multidioma: ES, EN, JP, ZH)..."):
+                    detectado = leer_producto_sellado_ocr(img_sellado)
+                    if detectado:
+                        st.session_state.auto_set_name = detectado
+                        st.success(f"✨ ¡Detectado y autorellenado con éxito: **{detectado}**!")
+                    else:
+                        st.session_state.auto_set_name = ""
+                        st.warning("⚠️ No se pudo leer automáticamente. Escribe el set manualmente abajo.")
+        else:
+            st.session_state.last_sealed_file = None
 
         tipo_sellado = st.selectbox("Categoría", ["Booster Box", "Elite Trainer Box (ETB)", "Caja de Colección", "Blister", "Otros"])
         
         custom_producto = ""
         if tipo_sellado == "Otros":
-            custom_producto = st.text_input("Especifica el producto:", value=nombre_sugerido_ocr if nombre_sugerido_ocr else "Booster Box")
+            custom_producto = st.text_input("Especifica el producto:", value=st.session_state.auto_set_name)
             
         idioma_sellado = st.selectbox("Idioma", ["Inglés", "Español", "Japonés", "Chino"])
         
-        default_set_val = set_seleccionado_rapido if set_seleccionado_rapido else (nombre_sugerido_ocr if (tipo_sellado != "Otros" and nombre_sugerido_ocr) else "")
-        nombre_set = st.text_input("Nombre del Set o Colección (ej. CSV10C - 共逐荣光, 151)", value=default_set_val)
+        nombre_set = st.text_input("Nombre del Set o Colección (ej. CSV10C - 共逐荣光, Surging Sparks, 151)", value=st.session_state.auto_set_name if tipo_sellado != "Otros" else "")
         
         # Mapeo de categorías a IDs de Cardmarket
         cat_ids = {
