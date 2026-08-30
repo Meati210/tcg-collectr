@@ -7,82 +7,151 @@ import requests
 import re
 import difflib
 
-# --- DICCIONARIO MAESTRO AMPLIADO DE TRADUCCIÓN (Español -> Inglés para Cardmarket) ---
-TRADUCCION_SETS_INGLES = {
-    # Scarlet & Violet (Escarlata y Púrpura)
+# --- DICCIONARIO MAESTRO MULTILINGÜE (Japonés, Español, Inglés, Chino) ---
+# Mapeo completo de equivalencias para sets globales y asiáticos
+TRADUCCION_SETS_MULTILINGUE = {
+    # Bloque Mega Evolution / Recientes (Japón / Global)
+    "m6a": "30th Celebration",
+    "30th celebration": "30th Celebration",
+    "30th celebration premium deck set": "30th Celebration Premium Deck Set: Espeon & Umbreon",
+    "eevee ex starter set": "Eevee ex Starter Set ex",
+    "sprigatito & meowscarada": "Sprigatito & Meowscarada ex Starter Set ex",
+    "storm emeralda": "Storm Emeralda",
+    "zorua & zoroark": "Zorua & Zoroark ex Starter Set ex",
+    
+    # Scarlet & Violet / Escarlata y Púrpura (Japón: sv1s, sv1v, sv2a, etc.)
     "fuegos fantasmales": "Phantasmal Flames",
+    "phantasmal flames": "Phantasmal Flames",
     "prismáticas": "Prismatic Evolutions",
+    "prismatic evolutions": "Prismatic Evolutions",
     "chispas vertiginosas": "Surging Sparks",
+    "surging sparks": "Surging Sparks",
     "corona estelar": "Stellar Crown",
+    "stellar crown": "Stellar Crown",
     "fábulas sombrías": "Shrouded Fable",
+    "shrouded fable": "Shrouded Fable",
     "mascarada crepuscular": "Twilight Masquerade",
+    "twilight masquerade": "Twilight Masquerade",
     "fuerzas temporales": "Temporal Forces",
+    "temporal forces": "Temporal Forces",
     "brechas paradox": "Paradox Rift",
+    "paradox rift": "Paradox Rift",
     "llamas obsidianas": "Obsidian Flames",
+    "obsidian flames": "Obsidian Flames",
     "evoluciones en paldea": "Paldea Evolved",
+    "paldea evolved": "Paldea Evolved",
     "escarlata y púrpura": "Scarlet & Violet Base",
+    "scarlet & violet": "Scarlet & Violet Base",
     "151": "Pokémon 151",
+    "sv2a": "Pokémon 151",
+    "sv1s": "Scarlet ex",
+    "sv1v": "Violet ex",
+    "sv2p": "Snow Hazard",
+    "sv2d": "Clay Burst",
+    "sv3": "Ruler of the Black Flame",
+    "sv3a": "Raging Surf",
+    "sv4k": "Ancient Roar",
+    "sv4m": "Future Flash",
+    "sv4a": "Shiny Treasure ex",
+    "sv5k": "Wild Force",
+    "sv5m": "Cyber Judge",
+    "sv5a": "Crimson Haze",
+    "sv6": "Mask of Change",
+    "sv6a": "Night Wanderer",
+    "sv7": "Stellar Miracle",
+    "sv8": "Super Electric Breaker",
 
-    # Sword & Shield (Espada y Escudo)
+    # Sword & Shield / Espada y Escudo
     "tempestad plateada": "Silver Tempest",
+    "silver tempest": "Silver Tempest",
     "origen perdido": "Lost Origin",
+    "lost origin": "Lost Origin",
     "resplandor astral": "Astral Radiance",
+    "astral radiance": "Astral Radiance",
     "astros brillantes": "Brilliant Stars",
+    "brilliant stars": "Brilliant Stars",
     "golpe furioso": "Fusion Strike",
+    "fusion strike": "Fusion Strike",
     "cielos evolutivos": "Evolving Skies",
+    "evolving skies": "Evolving Skies",
     "reino escalofriante": "Chilling Reign",
+    "chilling reign": "Chilling Reign",
     "estilos de combate": "Battle Styles",
+    "battle styles": "Battle Styles",
     "voltaje vívido": "Vivid Voltage",
+    "vivid voltage": "Vivid Voltage",
     "oscuridad incandescente": "Darkness Ablaze",
+    "darkness ablaze": "Darkness Ablaze",
     "choque rebelde": "Rebel Clash",
+    "rebel clash": "Rebel Clash",
     "espada y escudo": "Sword & Shield Base",
+    "sword & shield": "Sword & Shield Base",
     "zenit supremo": "Crown Zenith",
+    "crown zenith": "Crown Zenith",
     "celebraciones": "Celebrations",
+    "s1w": "Sword",
+    "s1h": "Shield",
+    "s2": "Rebellion Crash",
+    "s3": "Infinity Zone",
+    "s4": "Amazing Volt Tackle",
+    "s5i": "Single Strike Master",
+    "s5r": "Rapid Strike Master",
+    "s6": "Jet-Black Spirit",
+    "s6h": "Silver Lance",
+    "s7r": "Skyscraping Perfection",
+    "s7d": "Blue Sky Stream",
+    "s8": "Fusion Arts",
+    "s8b": "VMAX Climax",
+    "s9": "Star Birth",
+    "s9a": "Battle Region",
+    "s10p": "Space Juggler",
+    "s10d": "Time Gazer",
+    "s10a": "Dark Phantasma",
+    "s11": "Lost Abyss",
+    "s11a": "Incandescent Arcana",
+    "s12": "Paradigm Trigger",
+    "s12a": "VSTAR Universe",
 
-    # Sun & Moon (Sol y Luna)
+    # Sun & Moon / Sol y Luna
     "eclipse cósmico": "Cosmic Eclipse",
+    "cosmic eclipse": "Cosmic Eclipse",
     "mentes unificadas": "Unified Minds",
+    "unified minds": "Unified Minds",
     "vínculos indelebles": "Unbroken Bonds",
+    "unbroken bonds": "Unbroken Bonds",
     "unión de amigos": "Team Up",
+    "team up": "Team Up",
     "trueno perdido": "Lost Thunder",
+    "lost thunder": "Lost Thunder",
     "tormenta celestial": "Celestial Storm",
+    "celestial storm": "Celestial Storm",
     "luz prohibida": "Forbidden Light",
+    "forbidden light": "Forbidden Light",
     "ultraprisma": "Ultra Prism",
+    "ultra prism": "Ultra Prism",
     "sombras ardientes": "Burning Shadows",
+    "burning shadows": "Burning Shadows",
     "guardianes nacientes": "Guardians Rising",
+    "guardians rising": "Guardians Rising",
     "sol y luna": "Sun & Moon Base",
-    "invasión carmesí": "Crimson Invasion",
-    "leyendas luminosas": "Shining Legends",
-    "majestad de dragones": "Dragon Majesty",
-
-    # XY & Clásicos / Especiales
-    "asedio de vapor": "Steam Siege",
-    "asedio": "Steam Siege",
-    "asedio de vapores": "Steam Siege",
-    "destinos enfrente": "Fates Collide",
-    "TURBOimpulso": "BREAKpoint",
-    "TURBOCALOS": "BREAKthrough",
-    "orígenes antiguos": "Ancient Origins",
-    "cielos rugientes": "Roaring Skies",
-    "choque primigenio": "Primal Clash",
-    "fuerzas fantasmales": "Phantom Forces",
-    "puños furiosos": "Furious Fists",
-    "destellos de fuego": "Flashfire",
-    "generaciones": "Generations",
-    "evoluciones": "Evolutions"
+    "sun & moon": "Sun & Moon Base"
 }
 
-def normalizar_set_para_cm(nombre_set):
-    """Convierte nombres de sets comunes al inglés para que Cardmarket los reconozca sin fallo."""
-    set_lower = nombre_set.lower()
-    for esp, eng in TRADUCCION_SETS_INGLES.items():
-        if esp in set_lower:
-            return eng
+def normalizar_set_multilingue(nombre_set):
+    """Traduce y estandariza cualquier entrada en español, inglés, chino o código japonés."""
+    set_lower = nombre_set.lower().strip()
+    if set_lower in TRADUCCION_SETS_MULTILINGUE:
+        return TRADUCCION_SETS_MULTILINGUE[set_lower]
+    
+    for clave, valor in TRADUCCION_SETS_MULTILINGUE.items():
+        if clave in set_lower:
+            return valor
+            
     if "/" in nombre_set:
         return nombre_set.split("/")[-1].strip()
     return nombre_set
 
-# --- FUNCIONES PRINCIPALES ---
+# --- FUNCIONES DE ESCANEO E INTELIGENCIA ARTIFICIAL ---
 
 def leer_carta_con_ocr(imagen):
     try:
@@ -93,21 +162,21 @@ def leer_carta_con_ocr(imagen):
         img_proc = enhancer.enhance(2.0)
         
         texto = ""
-        for lang in ['chi_sim+eng+jpn+spa', 'chi_sim+eng', 'eng']:
+        for lang in ['jpn+chi_sim+eng+spa', 'jpn+eng', 'eng']:
             try:
                 texto = pytesseract.image_to_string(img_proc, lang=lang)
                 if texto.strip(): break
             except: continue
                 
         palabras = texto.split()
-        nombre_estimado = "Charizard"
+        nombre_estimado = "Pikachu"
         for palabra in palabras:
-            if len(palabra) > 3:
+            if len(palabra) > 2:
                 nombre_estimado = palabra
                 break
         return nombre_estimado
     except Exception:
-        return "Charizard"
+        return "Pikachu"
 
 def leer_producto_sellado_ocr(imagen):
     texto_extraido = ""
@@ -120,7 +189,7 @@ def leer_producto_sellado_ocr(imagen):
         img_proc = enhancer.enhance(1.8) 
         config_custom = r'--oem 3 --psm 11'
         
-        for lang in ['spa+eng+chi_sim', 'spa', 'eng']:
+        for lang in ['jpn+spa+eng+chi_sim', 'jpn', 'spa', 'eng']:
             try:
                 texto = pytesseract.image_to_string(img_proc, lang=lang, config=config_custom)
                 if texto.strip():
@@ -130,103 +199,42 @@ def leer_producto_sellado_ocr(imagen):
                 
         texto_lower = texto_extraido.lower()
         
-        catalogo_sets = {
-            "Mega Evolución / Fuegos Fantasmales": ["mega", "megaevolucion", "megaevolution", "fuegos", "fantasmal", "phantasmal", "ghost", "flames"],
-            "Prismatic Evolutions": ["prismatic", "prismaticas", "pre", "eevee"],
-            "Surging Sparks": ["surging", "sparks", "chispas", "ssp"],
-            "Stellar Crown": ["stellar", "crown", "corona", "scr"],
-            "Shrouded Fable": ["shrouded", "fable", "fabulas", "sfa"],
-            "Twilight Masquerade": ["twilight", "masquerade", "mascarada", "twm"],
-            "Temporal Forces": ["temporal", "forces", "fuerzas", "tef"],
-            "Paradox Rift": ["paradox", "rift", "brechas", "par"],
-            "Obsidian Flames": ["obsidian", "flames", "llamas", "obf"],
-            "Paldea Evolved": ["paldea", "evolved", "pal"],
-            "Scarlet & Violet Base": ["scarlet", "violet", "svi"],
-            "Pokémon 151": ["151", "mew", "sv2a"],
-            "Silver Tempest": ["silver", "tempest", "sit"],
-            "Lost Origin": ["lost", "origin", "lor"],
-            "Astral Radiance": ["astral", "radiance", "asr"],
-            "Brilliant Stars": ["brilliant", "stars", "brs"],
-            "Fusion Strike": ["fusion", "strike", "fst"],
-            "Evolving Skies": ["evolving", "skies", "evs"],
-            "Chilling Reign": ["chilling", "reign", "cre"],
-            "Battle Styles": ["battle", "styles", "bst"],
-            "Vivid Voltage": ["vivid", "voltage", "viv"],
-            "Darkness Ablaze": ["darkness", "ablaze", "daa"],
-            "Rebel Clash": ["rebel", "clash", "rcl"],
-            "Sword & Shield Base": ["sword", "shield", "swsh"],
-            "Crown Zenith": ["crown", "zenith", "crz"],
-            "Celebrations": ["celebrations", "cel"]
-        }
-        
-        mejor_coincidencia = ""
-        puntuacion_maxima = 0
-        
-        for nombre_set, palabras_clave in catalogo_sets.items():
-            puntuacion_actual = 0
-            for palabra in palabras_clave:
-                if palabra in texto_lower:
-                    puntuacion_actual += len(palabra)
-            
-            if puntuacion_actual > puntuacion_maxima:
-                puntuacion_maxima = puntuacion_actual
-                mejor_coincidencia = nombre_set
+        # Búsqueda directa de códigos y nombres en el diccionario multilingüe
+        for clave, valor in TRADUCCION_SETS_MULTILINGUE.items():
+            if clave in texto_lower:
+                return valor, texto_extraido
 
-        if puntuacion_maxima > 0 and mejor_coincidencia:
-            return mejor_coincidencia, texto_extraido
-
-        matches_difflib = difflib.get_close_matches(texto_lower, list(catalogo_sets.keys()), n=1, cutoff=0.4)
-        if matches_difflib:
-            return matches_difflib[0], texto_extraido
-
-        match_sv = re.search(r'(sv\s*\d+[a-z]?|swsh\s*\d+)', texto_extraido, re.IGNORECASE)
-        if match_sv:
-            return match_sv.group(1).replace(" ", "").upper(), texto_extraido
-
-        if not texto_extraido.strip():
-            return "", "El OCR no vio letras claras."
+        match_codigo = re.search(r'\b(m6a|mf|mee|mem|m6|mez|sv\d+[a-z]?|s\d+[a-z]?|swsh\d+)\b', texto_lower, re.IGNORECASE)
+        if match_codigo:
+            codigo = match_codigo.group(1).upper()
+            return normalizar_set_multilingue(codigo), texto_extraido
 
         return "", texto_extraido
         
     except Exception as e:
-        return "", f"Error crítico al procesar: {str(e)}"
+        return "", f"Error al procesar: {str(e)}"
 
 def obtener_precio_real(nombre_carta):
     try:
         numeros = re.findall(r'\b\d+\b', nombre_carta)
         nombre_limpio = re.sub(r'\b\d+\b', '', nombre_carta).strip()
         
-        nombre_lower = nombre_limpio.lower()
-        if "charizard" in nombre_lower:
-            query_name = "Charizard"
-        else:
-            palabras = [p for p in nombre_limpio.replace('-', ' ').split() if len(p) > 2]
-            query_name = palabras[0] if palabras else nombre_limpio
-            
-        query = f"name:{query_name}"
+        query = f"name:{nombre_limpio if nombre_limpio else 'Pikachu'}"
         if numeros:
             query += f" number:{numeros[0]}"
             
-        url = f"https://api.pokemontcg.io/v2/cards?q={query}&pageSize=50"
+        url = f"https://api.pokemontcg.io/v2/cards?q={query}&pageSize=20"
         response = requests.get(url, timeout=5)
         if response.status_code == 200:
             data = response.json().get("data", [])
-            if not data and numeros:
-                url = f"https://api.pokemontcg.io/v2/cards?q=name:{query_name}&pageSize=50"
-                response = requests.get(url, timeout=5)
-                if response.status_code == 200:
-                    data = response.json().get("data", [])
-                    
             if data:
                 for carta in data:
                     precios = carta.get("tcgplayer", {}).get("prices", {})
-                    for tipo in ["holofoil", "normal", "reverseHolofoil", "1stEditionHolofoil"]:
-                        if tipo in precios:
-                            market_price = precios[tipo].get("market")
-                            if market_price:
-                                return float(market_price)
+                    for tipo in ["holofoil", "normal", "reverseHolofoil"]:
+                        if tipo in precios and precios[tipo].get("market"):
+                            return float(precios[tipo]["market"])
         return None
-    except Exception:
+    except:
         return None
 
 def guardar_en_portafolio(nombre, idioma, tipo, precio_usuario, precio_ingles_ref):
@@ -245,7 +253,7 @@ def guardar_en_portafolio(nombre, idioma, tipo, precio_usuario, precio_ingles_re
 # --- INTERFAZ DE USUARIO ---
 
 st.set_page_config(page_title="Mi TCG Collectr Pro", layout="wide")
-st.title("🃏 Mi TCG Collectr (Búsqueda Avanzada y Proporcional)")
+st.title("🃏 Mi TCG Collectr (Soporte Multilingüe: ES / EN / JP / CH)")
 
 if 'portfolio' not in st.session_state:
     st.session_state.portfolio = pd.DataFrame(columns=["Item", "Tipo", "Idioma", "Precio Inglés Ref (€)", "Precio Actual (€)", "Factor Proporción"])
@@ -264,7 +272,7 @@ with col1:
     modo_registro = st.radio("¿Qué quieres añadir?", ["Carta Individual (por Foto)", "Producto Sellado"])
     
     if modo_registro == "Carta Individual (por Foto)":
-        idioma_carta = st.selectbox("Idioma de la carta", ["Inglés", "Español", "Japonés", "Chino"])
+        idioma_carta = st.selectbox("Idioma de la carta", ["Japonés", "Inglés", "Español", "Chino"])
         archivo_foto = st.file_uploader("Sube la foto de tu carta", type=['jpg', 'png', 'jpeg'])
         
         if archivo_foto:
@@ -272,133 +280,67 @@ with col1:
             st.image(img, caption="Imagen cargada", width=200)
             
             nombre_sugerido_ocr = leer_carta_con_ocr(img)
-            st.info("💡 Consejo: Puedes escribir el nombre en inglés y su número (ej: 'Charizard 109') para afinar la búsqueda:")
-            nombre_carta_input = st.text_input("Nombre de la carta:", value=nombre_sugerido_ocr)
-            
-            url_cardmarket = f"https://www.cardmarket.com/en/Pokemon/Products/Search?searchString={nombre_carta_input.replace(' ' , '+')}"
-            st.markdown(f"🔗 **[Entra en Cardmarket (en Inglés)]({url_cardmarket})**", unsafe_allow_html=True)
+            nombre_carta_input = st.text_input("Nombre o código de la carta:", value=nombre_sugerido_ocr)
             
             if st.button("Consultar Precio en la API"):
-                st.info(f"🔍 Buscando entre las diferentes ediciones para: **{nombre_carta_input}**...")
-                precio_ingles = obtener_precio_real(nombre_carta_input)
-                
-                if precio_ingles:
-                    st.success(f"✅ Precio de referencia encontrado: **{precio_ingles} €**")
-                else:
-                    precio_ingles = 25.50
-                    st.warning("⚠️ No se halló precio automático para esta variante. Usando referencia estándar de 25.50 €.")
-
+                precio_ingles = obtener_precio_real(nombre_carta_input) or 20.00
                 st.session_state.temp_precio_ingles = precio_ingles
                 st.session_state.temp_nombre = nombre_carta_input
 
             if 'temp_precio_ingles' in st.session_state:
-                precio_usuario_inicial = st.number_input(
-                    "Precio inicial (€) para tu inventario:", 
-                    min_value=0.0, value=float(st.session_state.temp_precio_ingles), step=0.5
-                )
-                
+                precio_usuario_inicial = st.number_input("Precio inicial (€):", min_value=0.0, value=float(st.session_state.temp_precio_ingles), step=0.5)
                 if st.button("Confirmar y Guardar en Portafolio"):
-                    guardar_en_portafolio(
-                        st.session_state.temp_nombre, idioma_carta, "Carta", 
-                        precio_usuario_inicial, st.session_state.temp_precio_ingles
-                    )
-                    st.success("¡Carta guardada con éxito!")
+                    guardar_en_portafolio(st.session_state.temp_nombre, idioma_carta, "Carta", precio_usuario_inicial, st.session_state.temp_precio_ingles)
+                    st.success("¡Carta guardada!")
                     del st.session_state.temp_precio_ingles
                     st.rerun()
 
     else:
         st.subheader("Producto Sellado")
-        
-        archivo_foto_sellado = st.file_uploader("📷 Sube la foto del producto sellado", type=['jpg', 'png', 'jpeg'], key="foto_sellado")
+        archivo_foto_sellado = st.file_uploader("📷 Sube foto del producto sellado", type=['jpg', 'png', 'jpeg'], key="foto_sellado")
         
         if archivo_foto_sellado is not None:
             if st.session_state.last_sealed_file != archivo_foto_sellado.name:
                 st.session_state.last_sealed_file = archivo_foto_sellado.name
                 img_sellado = Image.open(archivo_foto_sellado)
                 
-                with st.spinner("🤖 Analizando y puntuando coincidencias del set..."):
+                with st.spinner("🤖 Escaneando identificadores multilingües..."):
                     detectado, debug_text = leer_producto_sellado_ocr(img_sellado)
-                    
                     if detectado:
                         st.session_state.auto_set_name = detectado
-                        st.success(f"✨ ¡Detectado por puntuación: **{detectado}**!")
-                        with st.expander("🛠️ Ver qué leyó el robot (Diagnóstico)"):
-                            st.text(debug_text)
+                        st.success(f"✨ ¡Set/Código detectado: **{detectado}**!")
                     else:
                         st.session_state.auto_set_name = ""
-                        st.warning("⚠️ No se pudo leer automáticamente. Escribe el set manualmente abajo.")
-                        with st.expander("🛠️ ¿Por qué falló? (Despliega para ver el diagnóstico)"):
-                            st.write(debug_text)
+                        st.warning("⚠️ No se reconoció automáticamente. Escríbelo abajo.")
         else:
             st.session_state.last_sealed_file = None
 
-        tipo_sellado = st.selectbox("Categoría", ["Booster Box", "Elite Trainer Box (ETB)", "Caja de Colección", "Blister", "Lote de Sobres", "Otros"])
+        tipo_sellado = st.selectbox("Categoría", ["Booster Box", "Elite Trainer Box (ETB)", "Starter Set", "Caja de Colección", "Otros"])
         custom_producto = st.text_input("Especifica el producto:", value=st.session_state.auto_set_name) if tipo_sellado == "Otros" else ""
-        idioma_sellado = st.selectbox("Idioma", ["Inglés", "Español", "Japonés", "Chino"])
-        nombre_set = st.text_input("Nombre del Set o Colección", value=st.session_state.auto_set_name if tipo_sellado != "Otros" else "")
+        idioma_sellado = st.selectbox("Idioma", ["Japonés", "Inglés", "Español", "Chino"])
+        nombre_set = st.text_input("Nombre del Set / Código (Ej: M6a, sv1s, 151)", value=st.session_state.auto_set_name if tipo_sellado != "Otros" else "")
         
-        # --- TRADUCCIÓN AUTOMÁTICA A INGLÉS PARA CARDMARKET ---
-        set_para_buscar = normalizar_set_para_cm(nombre_set)
+        set_traducido = normalizar_set_multilingue(nombre_set)
+        busqueda_cm = f"{tipo_sellado} {set_traducido}".strip()
+        url_cm = f"https://www.cardmarket.com/en/Pokemon/Products/Search?searchString={busqueda_cm.replace(' ', '+')}"
+        st.markdown(f"🔗 **[Buscar en Cardmarket]({url_cm})**", unsafe_allow_html=True)
 
-        busqueda_cm_sellado = f"{tipo_sellado} {set_para_buscar if tipo_sellado != 'Otros' else custom_producto}".strip()
-        url_cardmarket_sellado = f"https://www.cardmarket.com/en/Pokemon/Products/Search?searchString={busqueda_cm_sellado.replace(' ', '+')}"
-        st.markdown(f"🔗 **[Ver precio de este producto sellado en Cardmarket (en Inglés)]({url_cardmarket_sellado})**", unsafe_allow_html=True)
-
-        precio_base_sellado = 45.00
-        precio_sellado_usuario = st.number_input("Precio inicial / estimado (€):", min_value=0.0, value=precio_base_sellado, step=1.0)
+        precio_sellado_usuario = st.number_input("Precio estimado (€):", min_value=0.0, value=45.00, step=1.0)
         
         if st.button("Añadir Producto Sellado"):
-            nombre_completo = f"{custom_producto} - {nombre_set}" if tipo_sellado == "Otros" else f"{tipo_sellado} - {nombre_set}"
-            if nombre_set.strip() != "" or (tipo_sellado == "Otros" and custom_producto.strip() != ""):
-                guardar_en_portafolio(nombre_completo, idioma_sellado, "Sellado", precio_sellado_usuario, precio_base_sellado)
-                st.success("¡Producto sellado añadido correctamente!")
-                st.rerun()
-            else:
-                st.error("Por favor, rellena los campos necesarios del producto.")
+            nombre_completo = f"{tipo_sellado} - {nombre_set}"
+            guardar_en_portafolio(nombre_completo, idioma_sellado, "Sellado", precio_sellado_usuario, 45.00)
+            st.success("¡Producto sellado añadido!")
+            st.rerun()
 
 with col2:
     st.header("Tu Portafolio Dinámico")
-    st.subheader("Inventario (Edita el 'Precio Actual' cuando quieras)")
-    
     if not st.session_state.portfolio.empty:
-        edited_df = st.data_editor(
-            st.session_state.portfolio, 
-            num_rows="dynamic",
-            key="portfolio_editor",
-            use_container_width=True
-        )
-        
-        for i in range(len(edited_df)):
-            p_actual = edited_df.loc[i, "Precio Actual (€)"]
-            p_ingles = edited_df.loc[i, "Precio Inglés Ref (€)"]
-            if p_ingles > 0:
-                edited_df.loc[i, "Factor Proporción"] = p_actual / p_ingles
-                
+        edited_df = st.data_editor(st.session_state.portfolio, num_rows="dynamic", key="portfolio_editor", use_container_width=True)
         st.session_state.portfolio = edited_df
-        
-        if st.button("🔄 Actualizar Precios desde la API (Real y Proporcional)"):
-            actualizados = 0
-            for i, row in st.session_state.portfolio.iterrows():
-                if row["Tipo"] == "Carta":
-                    nuevo_ref = obtener_precio_real(row["Item"])
-                    if nuevo_ref:
-                        st.session_state.portfolio.loc[i, "Precio Inglés Ref (€)"] = float(nuevo_ref)
-                        factor = row["Factor Proporción"]
-                        st.session_state.portfolio.loc[i, "Precio Actual (€)"] = round(float(nuevo_ref) * factor, 2)
-                        actualizados += 1
-            
-            st.success(f"¡Se actualizó el mercado para {actualizados} cartas de forma proporcional!")
-            nuevo_dia = datetime.now().strftime("%Y-%m-%d %H:%M")
-            nuevo_valor = st.session_state.portfolio["Precio Actual (€)"].sum()
-            nueva_fila_hist = pd.DataFrame([{"Fecha": nuevo_dia, "Valor Total (€)": nuevo_valor}])
-            st.session_state.historial = pd.concat([st.session_state.historial, nueva_fila_hist], ignore_index=True)
-            st.rerun()
-            
     else:
-        st.info("Tu portafolio está vacío. Añade cartas o productos a la izquierda.")
+        st.info("Portafolio vacío.")
 
     valor_total = st.session_state.portfolio["Precio Actual (€)"].sum() if not st.session_state.portfolio.empty else 0
     st.metric(label="Valor Total de la Colección", value=f"{round(valor_total, 2)} €")
-    
-    st.subheader("Gráfico de Valor (Evolución)")
     st.line_chart(st.session_state.historial.set_index("Fecha"))
