@@ -7,45 +7,39 @@ import requests
 import re
 import difflib
 
-# --- DICCIONARIO MAESTRO MULTILINGÜE (Japonés, Español, Inglés, Chino) ---
-# Mapeo completo de equivalencias para sets globales y asiáticos
-TRADUCCION_SETS_MULTILINGUE = {
-    # Bloque Mega Evolution / Recientes (Japón / Global)
-    "m6a": "30th Celebration",
+# --- DICCIONARIO MAESTRO AMPLIADO (ESPAÑOL, INGLÉS, JAPONÉS Y CHINO) ---
+TRADUCCION_SETS_COMPLETO = {
+    # --- BLOQUE MEGA EVOLUTION / RECIENTES ---
     "30th celebration": "30th Celebration",
     "30th celebration premium deck set": "30th Celebration Premium Deck Set: Espeon & Umbreon",
     "eevee ex starter set": "Eevee ex Starter Set ex",
     "sprigatito & meowscarada": "Sprigatito & Meowscarada ex Starter Set ex",
     "storm emeralda": "Storm Emeralda",
     "zorua & zoroark": "Zorua & Zoroark ex Starter Set ex",
-    
-    # Scarlet & Violet / Escarlata y Púrpura (Japón: sv1s, sv1v, sv2a, etc.)
+    "m6a": "30th Celebration",
+    "mf": "30th Celebration Premium Deck Set: Espeon & Umbreon",
+    "mee": "Eevee ex Starter Set ex",
+    "mem": "Sprigatito & Meowscarada ex Starter Set ex",
+    "m6": "Storm Emeralda",
+    "mez": "Zorua & Zoroark ex Starter Set ex",
+
+    # --- BLOQUE SCARLET & VIOLET / ESCARLATA Y PÚRPURA ---
     "fuegos fantasmales": "Phantasmal Flames",
-    "phantasmal flames": "Phantasmal Flames",
     "prismáticas": "Prismatic Evolutions",
-    "prismatic evolutions": "Prismatic Evolutions",
     "chispas vertiginosas": "Surging Sparks",
-    "surging sparks": "Surging Sparks",
     "corona estelar": "Stellar Crown",
-    "stellar crown": "Stellar Crown",
     "fábulas sombrías": "Shrouded Fable",
-    "shrouded fable": "Shrouded Fable",
     "mascarada crepuscular": "Twilight Masquerade",
-    "twilight masquerade": "Twilight Masquerade",
     "fuerzas temporales": "Temporal Forces",
-    "temporal forces": "Temporal Forces",
     "brechas paradox": "Paradox Rift",
-    "paradox rift": "Paradox Rift",
     "llamas obsidianas": "Obsidian Flames",
-    "obsidian flames": "Obsidian Flames",
     "evoluciones en paldea": "Paldea Evolved",
-    "paldea evolved": "Paldea Evolved",
-    "escarlata y púrpura": "Scarlet & Violet Base",
-    "scarlet & violet": "Scarlet & Violet Base",
+    "escarlata y púrpura": "Scarlet & Violet",
     "151": "Pokémon 151",
-    "sv2a": "Pokémon 151",
+    # Códigos Japón / Asia SV
     "sv1s": "Scarlet ex",
     "sv1v": "Violet ex",
+    "sv2a": "Pokémon 151",
     "sv2p": "Snow Hazard",
     "sv2d": "Clay Burst",
     "sv3": "Ruler of the Black Flame",
@@ -61,34 +55,22 @@ TRADUCCION_SETS_MULTILINGUE = {
     "sv7": "Stellar Miracle",
     "sv8": "Super Electric Breaker",
 
-    # Sword & Shield / Espada y Escudo
+    # --- BLOQUE SWORD & SHIELD / ESPADA Y ESCUDO ---
     "tempestad plateada": "Silver Tempest",
-    "silver tempest": "Silver Tempest",
     "origen perdido": "Lost Origin",
-    "lost origin": "Lost Origin",
     "resplandor astral": "Astral Radiance",
-    "astral radiance": "Astral Radiance",
     "astros brillantes": "Brilliant Stars",
-    "brilliant stars": "Brilliant Stars",
     "golpe furioso": "Fusion Strike",
-    "fusion strike": "Fusion Strike",
     "cielos evolutivos": "Evolving Skies",
-    "evolving skies": "Evolving Skies",
     "reino escalofriante": "Chilling Reign",
-    "chilling reign": "Chilling Reign",
     "estilos de combate": "Battle Styles",
-    "battle styles": "Battle Styles",
     "voltaje vívido": "Vivid Voltage",
-    "vivid voltage": "Vivid Voltage",
     "oscuridad incandescente": "Darkness Ablaze",
-    "darkness ablaze": "Darkness Ablaze",
     "choque rebelde": "Rebel Clash",
-    "rebel clash": "Rebel Clash",
-    "espada y escudo": "Sword & Shield Base",
-    "sword & shield": "Sword & Shield Base",
+    "espada y escudo": "Sword & Shield",
     "zenit supremo": "Crown Zenith",
-    "crown zenith": "Crown Zenith",
     "celebraciones": "Celebrations",
+    # Códigos Japón SWSH
     "s1w": "Sword",
     "s1h": "Shield",
     "s2": "Rebellion Crash",
@@ -112,38 +94,27 @@ TRADUCCION_SETS_MULTILINGUE = {
     "s12": "Paradigm Trigger",
     "s12a": "VSTAR Universe",
 
-    # Sun & Moon / Sol y Luna
+    # --- BLOQUE SUN & MOON / SOL Y LUNA ---
     "eclipse cósmico": "Cosmic Eclipse",
-    "cosmic eclipse": "Cosmic Eclipse",
     "mentes unificadas": "Unified Minds",
-    "unified minds": "Unified Minds",
     "vínculos indelebles": "Unbroken Bonds",
-    "unbroken bonds": "Unbroken Bonds",
     "unión de amigos": "Team Up",
-    "team up": "Team Up",
     "trueno perdido": "Lost Thunder",
-    "lost thunder": "Lost Thunder",
     "tormenta celestial": "Celestial Storm",
-    "celestial storm": "Celestial Storm",
     "luz prohibida": "Forbidden Light",
-    "forbidden light": "Forbidden Light",
     "ultraprisma": "Ultra Prism",
-    "ultra prism": "Ultra Prism",
     "sombras ardientes": "Burning Shadows",
-    "burning shadows": "Burning Shadows",
     "guardianes nacientes": "Guardians Rising",
-    "guardians rising": "Guardians Rising",
-    "sol y luna": "Sun & Moon Base",
-    "sun & moon": "Sun & Moon Base"
+    "sol y luna": "Sun & Moon"
 }
 
-def normalizar_set_multilingue(nombre_set):
-    """Traduce y estandariza cualquier entrada en español, inglés, chino o código japonés."""
+def normalizar_set_para_cm(nombre_set):
+    """Traduce y busca coincidencias exactas y parciales para Cardmarket"""
     set_lower = nombre_set.lower().strip()
-    if set_lower in TRADUCCION_SETS_MULTILINGUE:
-        return TRADUCCION_SETS_MULTILINGUE[set_lower]
+    if set_lower in TRADUCCION_SETS_COMPLETO:
+        return TRADUCCION_SETS_COMPLETO[set_lower]
     
-    for clave, valor in TRADUCCION_SETS_MULTILINGUE.items():
+    for clave, valor in TRADUCCION_SETS_COMPLETO.items():
         if clave in set_lower:
             return valor
             
@@ -151,7 +122,7 @@ def normalizar_set_multilingue(nombre_set):
         return nombre_set.split("/")[-1].strip()
     return nombre_set
 
-# --- FUNCIONES DE ESCANEO E INTELIGENCIA ARTIFICIAL ---
+# --- FUNCIONES DE LECTURA ÓPTICA (OCR) ---
 
 def leer_carta_con_ocr(imagen):
     try:
@@ -162,7 +133,7 @@ def leer_carta_con_ocr(imagen):
         img_proc = enhancer.enhance(2.0)
         
         texto = ""
-        for lang in ['jpn+chi_sim+eng+spa', 'jpn+eng', 'eng']:
+        for lang in ['spa+eng+jpn+chi_sim']:
             try:
                 texto = pytesseract.image_to_string(img_proc, lang=lang)
                 if texto.strip(): break
@@ -189,7 +160,7 @@ def leer_producto_sellado_ocr(imagen):
         img_proc = enhancer.enhance(1.8) 
         config_custom = r'--oem 3 --psm 11'
         
-        for lang in ['jpn+spa+eng+chi_sim', 'jpn', 'spa', 'eng']:
+        for lang in ['spa+eng+jpn+chi_sim', 'spa', 'eng', 'jpn']:
             try:
                 texto = pytesseract.image_to_string(img_proc, lang=lang, config=config_custom)
                 if texto.strip():
@@ -199,15 +170,15 @@ def leer_producto_sellado_ocr(imagen):
                 
         texto_lower = texto_extraido.lower()
         
-        # Búsqueda directa de códigos y nombres en el diccionario multilingüe
-        for clave, valor in TRADUCCION_SETS_MULTILINGUE.items():
+        # Búsqueda en el diccionario maestro por nombre clave o código
+        for clave, valor in TRADUCCION_SETS_COMPLETO.items():
             if clave in texto_lower:
                 return valor, texto_extraido
 
         match_codigo = re.search(r'\b(m6a|mf|mee|mem|m6|mez|sv\d+[a-z]?|s\d+[a-z]?|swsh\d+)\b', texto_lower, re.IGNORECASE)
         if match_codigo:
             codigo = match_codigo.group(1).upper()
-            return normalizar_set_multilingue(codigo), texto_extraido
+            return normalizar_set_para_cm(codigo), texto_extraido
 
         return "", texto_extraido
         
@@ -253,7 +224,7 @@ def guardar_en_portafolio(nombre, idioma, tipo, precio_usuario, precio_ingles_re
 # --- INTERFAZ DE USUARIO ---
 
 st.set_page_config(page_title="Mi TCG Collectr Pro", layout="wide")
-st.title("🃏 Mi TCG Collectr (Soporte Multilingüe: ES / EN / JP / CH)")
+st.title("🃏 Mi TCG Collectr (Gestión de Sets ES / EN / JP)")
 
 if 'portfolio' not in st.session_state:
     st.session_state.portfolio = pd.DataFrame(columns=["Item", "Tipo", "Idioma", "Precio Inglés Ref (€)", "Precio Actual (€)", "Factor Proporción"])
@@ -272,7 +243,7 @@ with col1:
     modo_registro = st.radio("¿Qué quieres añadir?", ["Carta Individual (por Foto)", "Producto Sellado"])
     
     if modo_registro == "Carta Individual (por Foto)":
-        idioma_carta = st.selectbox("Idioma de la carta", ["Japonés", "Inglés", "Español", "Chino"])
+        idioma_carta = st.selectbox("Idioma de la carta", ["Español", "Inglés", "Japonés", "Chino"])
         archivo_foto = st.file_uploader("Sube la foto de tu carta", type=['jpg', 'png', 'jpeg'])
         
         if archivo_foto:
@@ -304,23 +275,23 @@ with col1:
                 st.session_state.last_sealed_file = archivo_foto_sellado.name
                 img_sellado = Image.open(archivo_foto_sellado)
                 
-                with st.spinner("🤖 Escaneando identificadores multilingües..."):
+                with st.spinner("🤖 Escaneando set o código en la imagen..."):
                     detectado, debug_text = leer_producto_sellado_ocr(img_sellado)
                     if detectado:
                         st.session_state.auto_set_name = detectado
-                        st.success(f"✨ ¡Set/Código detectado: **{detectado}**!")
+                        st.success(f"✨ ¡Set detectado: **{detectado}**!")
                     else:
                         st.session_state.auto_set_name = ""
-                        st.warning("⚠️ No se reconoció automáticamente. Escríbelo abajo.")
+                        st.warning("⚠️ No se reconoció el set automáticamente. Escríbelo abajo.")
         else:
             st.session_state.last_sealed_file = None
 
         tipo_sellado = st.selectbox("Categoría", ["Booster Box", "Elite Trainer Box (ETB)", "Starter Set", "Caja de Colección", "Otros"])
         custom_producto = st.text_input("Especifica el producto:", value=st.session_state.auto_set_name) if tipo_sellado == "Otros" else ""
-        idioma_sellado = st.selectbox("Idioma", ["Japonés", "Inglés", "Español", "Chino"])
-        nombre_set = st.text_input("Nombre del Set / Código (Ej: M6a, sv1s, 151)", value=st.session_state.auto_set_name if tipo_sellado != "Otros" else "")
+        idioma_sellado = st.selectbox("Idioma", ["Español", "Inglés", "Japonés", "Chino"])
+        nombre_set = st.text_input("Nombre del Set / Código (Ej: Chispas Vertiginosas, sv1s, M6a)", value=st.session_state.auto_set_name if tipo_sellado != "Otros" else "")
         
-        set_traducido = normalizar_set_multilingue(nombre_set)
+        set_traducido = normalizar_set_para_cm(nombre_set)
         busqueda_cm = f"{tipo_sellado} {set_traducido}".strip()
         url_cm = f"https://www.cardmarket.com/en/Pokemon/Products/Search?searchString={busqueda_cm.replace(' ', '+')}"
         st.markdown(f"🔗 **[Buscar en Cardmarket]({url_cm})**", unsafe_allow_html=True)
