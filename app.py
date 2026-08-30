@@ -7,15 +7,69 @@ import requests
 import re
 import difflib
 
-# --- DICCIONARIO DE TRADUCCIÓN RÁPIDA DE SETS (Español/Otros -> Inglés para Cardmarket) ---
+# --- DICCIONARIO MAESTRO AMPLIADO DE TRADUCCIÓN (Español -> Inglés para Cardmarket) ---
 TRADUCCION_SETS_INGLES = {
+    # Scarlet & Violet (Escarlata y Púrpura)
     "fuegos fantasmales": "Phantasmal Flames",
     "prismáticas": "Prismatic Evolutions",
+    "chispas vertiginosas": "Surging Sparks",
+    "corona estelar": "Stellar Crown",
+    "fábulas sombrías": "Shrouded Fable",
+    "mascarada crepuscular": "Twilight Masquerade",
     "fuerzas temporales": "Temporal Forces",
     "brechas paradox": "Paradox Rift",
     "llamas obsidianas": "Obsidian Flames",
-    "fábulas sombrías": "Shrouded Fable",
-    "mascarada crepuscular": "Twilight Masquerade"
+    "evoluciones en paldea": "Paldea Evolved",
+    "escarlata y púrpura": "Scarlet & Violet Base",
+    "151": "Pokémon 151",
+
+    # Sword & Shield (Espada y Escudo)
+    "tempestad plateada": "Silver Tempest",
+    "origen perdido": "Lost Origin",
+    "resplandor astral": "Astral Radiance",
+    "astros brillantes": "Brilliant Stars",
+    "golpe furioso": "Fusion Strike",
+    "cielos evolutivos": "Evolving Skies",
+    "reino escalofriante": "Chilling Reign",
+    "estilos de combate": "Battle Styles",
+    "voltaje vívido": "Vivid Voltage",
+    "oscuridad incandescente": "Darkness Ablaze",
+    "choque rebelde": "Rebel Clash",
+    "espada y escudo": "Sword & Shield Base",
+    "zenit supremo": "Crown Zenith",
+    "celebraciones": "Celebrations",
+
+    # Sun & Moon (Sol y Luna)
+    "eclipse cósmico": "Cosmic Eclipse",
+    "mentes unificadas": "Unified Minds",
+    "vínculos indelebles": "Unbroken Bonds",
+    "unión de amigos": "Team Up",
+    "trueno perdido": "Lost Thunder",
+    "tormenta celestial": "Celestial Storm",
+    "luz prohibida": "Forbidden Light",
+    "ultraprisma": "Ultra Prism",
+    "sombras ardientes": "Burning Shadows",
+    "guardianes nacientes": "Guardians Rising",
+    "sol y luna": "Sun & Moon Base",
+    "invasión carmesí": "Crimson Invasion",
+    "leyendas luminosas": "Shining Legends",
+    "majestad de dragones": "Dragon Majesty",
+
+    # XY & Clásicos / Especiales
+    "asedio de vapor": "Steam Siege",
+    "asedio": "Steam Siege",
+    "asedio de vapores": "Steam Siege",
+    "destinos enfrente": "Fates Collide",
+    "TURBOimpulso": "BREAKpoint",
+    "TURBOCALOS": "BREAKthrough",
+    "orígenes antiguos": "Ancient Origins",
+    "cielos rugientes": "Roaring Skies",
+    "choque primigenio": "Primal Clash",
+    "fuerzas fantasmales": "Phantom Forces",
+    "puños furiosos": "Furious Fists",
+    "destellos de fuego": "Flashfire",
+    "generaciones": "Generations",
+    "evoluciones": "Evolutions"
 }
 
 def normalizar_set_para_cm(nombre_set):
@@ -76,9 +130,7 @@ def leer_producto_sellado_ocr(imagen):
                 
         texto_lower = texto_extraido.lower()
         
-        # --- DICCIONARIO MAESTRO EXTENDIDO CON MEGAEVOLUCIÓN Y BLOQUES HISTÓRICOS ---
         catalogo_sets = {
-            # Megaevolución y Actualidad
             "Mega Evolución / Fuegos Fantasmales": ["mega", "megaevolucion", "megaevolution", "fuegos", "fantasmal", "phantasmal", "ghost", "flames"],
             "Prismatic Evolutions": ["prismatic", "prismaticas", "pre", "eevee"],
             "Surging Sparks": ["surging", "sparks", "chispas", "ssp"],
@@ -91,9 +143,6 @@ def leer_producto_sellado_ocr(imagen):
             "Paldea Evolved": ["paldea", "evolved", "pal"],
             "Scarlet & Violet Base": ["scarlet", "violet", "svi"],
             "Pokémon 151": ["151", "mew", "sv2a"],
-            "CSV10C - 共逐荣光": ["csv10", "c5v10", "共逐荣光"],
-            
-            # Sword & Shield
             "Silver Tempest": ["silver", "tempest", "sit"],
             "Lost Origin": ["lost", "origin", "lor"],
             "Astral Radiance": ["astral", "radiance", "asr"],
@@ -107,53 +156,7 @@ def leer_producto_sellado_ocr(imagen):
             "Rebel Clash": ["rebel", "clash", "rcl"],
             "Sword & Shield Base": ["sword", "shield", "swsh"],
             "Crown Zenith": ["crown", "zenith", "crz"],
-            "Celebrations": ["celebrations", "cel"],
-            
-            # Sun & Moon
-            "Cosmic Eclipse": ["cosmic", "eclipse", "cec"],
-            "Unified Minds": ["unified", "minds", "unm"],
-            "Unbroken Bonds": ["unbroken", "bonds", "unb"],
-            "Team Up": ["team", "teu"],
-            "Lost Thunder": ["lost", "thunder", "lot"],
-            "Celestial Storm": ["celestial", "storm", "ces"],
-            "Forbidden Light": ["forbidden", "light", "fli"],
-            "Ultra Prism": ["ultra", "prism", "upr"],
-            "Burning Shadows": ["burning", "shadows", "bus"],
-            "Guardians Rising": ["guardians", "rising", "gri"],
-            "Sun & Moon Base": ["sun", "moon", "sum"],
-            "Crimson Invasion": ["crimson", "invasion", "cin"],
-            "Shining Legends": ["shining", "legends", "slg"],
-            "Dragon Majesty": ["dragon", "majesty", "drm"],
-            
-            # XY Series & Mega Era Clásica
-            "Steam Siege": ["steam", "siege", "sts"],
-            "Fates Collide": ["fates", "collide", "fco"],
-            "BREAKpoint": ["breakpoint", "bkp"],
-            "BREAKthrough": ["breakthrough", "bkt"],
-            "Ancient Origins": ["ancient", "origins", "aor"],
-            "Roaring Skies": ["roaring", "skies", "ros"],
-            "Primal Clash": ["primal", "clash", "prc"],
-            "Phantom Forces": ["phantom", "forces", "phf"],
-            "Furious Fists": ["furious", "fists", "ffi"],
-            "Flashfire": ["flashfire", "flf"],
-            "XY Base": ["xy", "base"],
-            "Generations": ["generations", "gdp"],
-            "Evolutions": ["evolutions", "evo"],
-            
-            # Black & White
-            "Plasma Blast": ["plasma", "blast", "plb"],
-            "Plasma Freeze": ["plasma", "freeze", "plf"],
-            "Plasma Storm": ["plasma", "storm", "pls"],
-            "Boundaries Crossed": ["boundaries", "crossed", "bcr"],
-            "Dragons Exalted": ["dragons", "exalted", "drx"],
-            "Dark Explorers": ["dark", "explorers", "dex"],
-            "Next Destinies": ["next", "destinies", "nxd"],
-            "Noble Victories": ["noble", "victories", "nvi"],
-            "Emerging Powers": ["emerging", "powers", "epo"],
-            "Black & White Base": ["black", "white", "blw"],
-            
-            # Retro y Classic
-            "Base Set": ["base", "set", "1999"]
+            "Celebrations": ["celebrations", "cel"]
         }
         
         mejor_coincidencia = ""
