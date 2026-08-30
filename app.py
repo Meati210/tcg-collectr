@@ -3,6 +3,8 @@ import re
 from datetime import datetime, timedelta
 from urllib.parse import quote_plus
 
+import cv2
+import numpy as np
 import pandas as pd
 import pytesseract
 import requests
@@ -230,39 +232,25 @@ def leer_carta_con_ocr(imagen: Image.Image) -> str:
         return "Charizard"
 
 
-def leer_producto_sellado_ocr(imagen: Image.Image) -> tuple[str, str]:
+def leer_producto_sellado_ocr(imagen: Image.Image, nombre_archivo: str = "") -> tuple[str, str]:
     texto_extraido = ""
     try:
+        pistas_nombre = nombre_archivo.replace("_", " ").replace("-", " ").lower()
+        
         img_rgb = imagen.convert("RGB")
-        w, h = img_rgb.size
+        img_np = np.array(img_rgb)
+        gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
+        
+        gray = cv2.resize(gray, (0, 0), fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+        _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
-        img_proc = img_rgb.resize((w * 2, h * 2), Image.Resampling.LANCZOS).convert("L")
-        enhancer = ImageEnhance.Contrast(img_proc)
-        img_proc = enhancer.enhance(1.8)
         config_custom = r"--oem 3 --psm 11"
+        texto_ocr = pytesseract.image_to_string(thresh, lang="eng+spa+jpn", config=config_custom)
+        
+        texto_extraido = f"Pista Archivo: {pistas_nombre}\nTexto OCR: {texto_ocr}"
+        texto_lower = (pistas_nombre + " " + texto_ocr).lower()
 
-        idiomas_intento = ["jpn+spa+eng", "spa+eng", "eng"]
-        for lang in idiomas_intento:
-            try:
-                texto = pytesseract.image_to_string(img_proc, lang=lang, config=config_custom)
-                if texto.strip():
-                    texto_extraido += " " + texto
-            except Exception:
-                continue
-
-        texto_lower = texto_extraido.lower()
-
-        # 1. Búsqueda de códigos Japoneses puros
-        match_jp = re.search(r'\b(sv[0-9]{1,2}[a-z]?|s[0-9]{1,2}[a-z]?|sm[0-9]{1,2}[a-z]?|xy[0-9]{1,2}[a-z]?|bw[0-9]{1,2}[a-z]?|cp[0-9])\b', texto_lower)
-        if match_jp:
-            codigo = match_jp.group(1)
-            if codigo in TRADUCCION_CODIGOS_JAPONESES:
-                return TRADUCCION_CODIGOS_JAPONESES[codigo], texto_extraido
-            return codigo.upper(), texto_extraido
-
-        # 2. CATÁLOGO DE SETS (Occidentales ESP/ENG integrados + Japoneses por nombre)
         catalogo_sets = {
-            # Mega Evolution / Scarlet & Violet Era
             "Phantasmal Flames": ["phantasmal", "flames", "fuegos", "fantasmales"],
             "Prismatic Evolutions": ["prismatic", "prismaticas", "pre", "eevee"],
             "Surging Sparks": ["surging", "sparks", "chispas", "vertiginosas", "ssp"],
@@ -275,8 +263,6 @@ def leer_producto_sellado_ocr(imagen: Image.Image) -> tuple[str, str]:
             "Paldea Evolved": ["paldea", "evolved", "evoluciones", "pal"],
             "Scarlet & Violet Base": ["scarlet", "violet", "escarlata", "purpura", "svi"],
             "Pokémon 151": ["151", "mew", "sv2a"],
-            
-            # Sword & Shield (ENG + ESP)
             "Crown Zenith": ["crown", "zenith", "zenit", "supremo", "crz"],
             "Silver Tempest": ["silver", "tempest", "tempestad", "plateada", "sit"],
             "Lost Origin": ["lost", "origin", "origen", "perdido", "lor"],
@@ -290,8 +276,6 @@ def leer_producto_sellado_ocr(imagen: Image.Image) -> tuple[str, str]:
             "Darkness Ablaze": ["darkness", "ablaze", "oscuridad", "incandescente", "daa"],
             "Rebel Clash": ["rebel", "clash", "choque", "rebelde", "rcl"],
             "Sword & Shield Base": ["sword", "shield", "espada", "escudo", "ssh"],
-            
-            # Sun & Moon (ENG + ESP)
             "Cosmic Eclipse": ["cosmic", "eclipse", "cosmico", "cec"],
             "Unified Minds": ["unified", "minds", "mentes", "unificadas", "umi"],
             "Unbroken Bonds": ["unbroken", "bonds", "vinculos", "indelebles", "unb"],
@@ -304,8 +288,6 @@ def leer_producto_sellado_ocr(imagen: Image.Image) -> tuple[str, str]:
             "Burning Shadows": ["burning", "shadows", "sombras", "ardientes", "bus"],
             "Guardians Rising": ["guardians", "rising", "guardianes", "nacientes", "gri"],
             "Sun & Moon Base": ["sun", "moon", "sol", "luna", "sum"],
-            
-            # XY - Megaevoluciones (ENG + ESP)
             "Evolutions": ["evolutions", "evoluciones", "evo"],
             "Steam Siege": ["steam", "siege", "asedio", "vapor", "sts"],
             "Fates Collide": ["fates", "collide", "destinos", "enfrentados", "fco"],
@@ -319,19 +301,10 @@ def leer_producto_sellado_ocr(imagen: Image.Image) -> tuple[str, str]:
             "Furious Fists": ["furious", "fists", "puños", "furiosos", "ffi"],
             "Flashfire": ["flashfire", "destellos", "fuego", "flf"],
             "XY Base": ["xy", "base"],
-
-            # Japoneses (Apoyo por nombre directo)
-            "VSTAR Universe": ["vstar", "universe", "s12a"],
-            "Shiny Treasure ex": ["shiny", "treasure", "sv4a"],
-            "Shiny Star V": ["shiny", "star", "v", "s4a"],
-            "Tag All Stars": ["tag", "stars", "sm12a"],
-            "Eevee Heroes": ["eevee", "heroes", "s6a"],
         }
 
         mejor_coincidencia = ""
         puntuacion_maxima = 0
-
-        # Extraemos palabras exactas para los códigos cortos
         palabras_ocr = set(re.findall(r'\b\w+\b', texto_lower))
 
         for nombre_set, palabras_clave in catalogo_sets.items():
@@ -351,12 +324,9 @@ def leer_producto_sellado_ocr(imagen: Image.Image) -> tuple[str, str]:
         if puntuacion_maxima > 0 and mejor_coincidencia:
             return mejor_coincidencia, texto_extraido
 
-        matches_difflib = difflib.get_close_matches(texto_lower, list(catalogo_sets.keys()), n=1, cutoff=0.4)
+        matches_difflib = difflib.get_close_matches(texto_lower, list(catalogo_sets.keys()), n=1, cutoff=0.3)
         if matches_difflib:
             return matches_difflib[0], texto_extraido
-
-        if not texto_extraido.strip():
-            return "", "El OCR no detectó texto legible."
 
         return "", texto_extraido
 
@@ -512,16 +482,16 @@ with col1:
                 img_sellado = Image.open(archivo_foto_sellado)
                 
                 with st.spinner("🤖 Analizando códigos y coincidencias del set..."):
-                    detectado, debug_text = leer_producto_sellado_ocr(img_sellado)
+                    detectado, debug_text = leer_producto_sellado_ocr(img_sellado, archivo_foto_sellado.name)
                     
                     if detectado:
                         st.session_state.auto_set_name = detectado
                         st.success(f"✨ ¡Detectado automáticamente: **{detectado}**!")
-                        with st.expander("🛠️ Ver qué leyó el robot (Diagnóstico)"): 
+                        with st.expander("🛠️ Diagnóstico OCR"): 
                             st.text(debug_text)
                     else:
                         st.session_state.auto_set_name = ""
-                        st.warning("⚠️ No se pudo leer automáticamente. Ingresa el set manualmente.")
+                        st.warning("⚠️ No se pudo leer automáticamente. Ingresa el set manualmente abajo.")
                         with st.expander("🛠️ Diagnóstico OCR"): 
                             st.write(debug_text)
         else: 
