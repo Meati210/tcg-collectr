@@ -11,7 +11,6 @@ from PIL import Image, ImageEnhance
 
 # --- 1. DICCIONARIO ESPAÑOL -> INGLÉS (OCCIDENTAL) ---
 TRADUCCION_SETS_INGLES = {
-    # Scarlet & Violet
     "fuegos fantasmales": "Phantasmal Flames",
     "prismáticas": "Prismatic Evolutions",
     "chispas vertiginosas": "Surging Sparks",
@@ -24,7 +23,6 @@ TRADUCCION_SETS_INGLES = {
     "evoluciones en paldea": "Paldea Evolved",
     "escarlata y púrpura": "Scarlet & Violet Base",
     "151": "Pokémon 151",
-    # Sword & Shield
     "tempestad plateada": "Silver Tempest",
     "origen perdido": "Lost Origin",
     "resplandor astral": "Astral Radiance",
@@ -39,7 +37,6 @@ TRADUCCION_SETS_INGLES = {
     "espada y escudo": "Sword & Shield Base",
     "zenit supremo": "Crown Zenith",
     "celebraciones": "Celebrations",
-    # Sun & Moon
     "eclipse cósmico": "Cosmic Eclipse",
     "mentes unificadas": "Unified Minds",
     "vínculos indelebles": "Unbroken Bonds",
@@ -54,9 +51,7 @@ TRADUCCION_SETS_INGLES = {
     "invasión carmesí": "Crimson Invasion",
     "leyendas luminosas": "Shining Legends",
     "majestad de dragones": "Dragon Majesty",
-    # XY & Clásicos / Especiales
     "asedio de vapor": "Steam Siege",
-    "asedio": "Steam Siege",
     "destinos enfrente": "Fates Collide",
     "turboimpulso": "BREAKpoint",
     "turbocalos": "BREAKthrough",
@@ -70,96 +65,67 @@ TRADUCCION_SETS_INGLES = {
     "evoluciones": "Evolutions",
 }
 
-# --- 2. DICCIONARIO JAPONÉS (CÓDIGO) -> INGLÉS (CARDMARKET) ---
-# Aquí están los principales (puedes pegar los 400 completos manteniendo este formato)
+# --- 2. DICCIONARIO JAPONÉS (CÓDIGOS) -> INGLÉS (CARDMARKET) ---
 TRADUCCION_CODIGOS_JAPONESES = {
-    # Scarlet & Violet (Japón)
-    "sv8a": "Terastal Fest ex",
-    "sv8": "Super Electric Breaker",
-    "sv7a": "Paradise Dragona",
-    "sv7": "Stellar Miracle",
-    "sv6a": "Night Wanderer",
-    "sv6": "Mask of Change",
-    "sv5a": "Crimson Haze",
-    "sv5m": "Cyber Judge",
-    "sv5k": "Wild Force",
-    "sv4a": "Shiny Treasure ex",
-    "sv4m": "Future Flash",
-    "sv4k": "Ancient Roar",
-    "sv3a": "Raging Surf",
-    "sv3": "Ruler of the Black Flame",
-    "sv2a": "Pokémon 151",
-    "sv2d": "Clay Burst",
-    "sv2p": "Snow Hazard",
-    "sv1a": "Triplet Beat",
-    "sv1v": "Violet ex",
-    "sv1s": "Scarlet ex",
-    
-    # Sword & Shield (Japón)
-    "s12a": "VSTAR Universe",
-    "s12": "Paradigm Trigger",
-    "s11a": "Incandescent Arcana",
-    "s11": "Lost Abyss",
-    "s10a": "Dark Phantasma",
-    "s10d": "Time Gazer",
-    "s10p": "Space Juggler",
-    "s9a": "Battle Region",
-    "s9": "Star Birth",
-    "s8b": "VMAX Climax",
-    "s8a": "25th Anniversary Collection",
-    "s8": "Fusion Arts",
-    "s7d": "Towering Perfection",
-    "s7r": "Blue Sky Stream",
-    "s6a": "Eevee Heroes",
-    "s6h": "Silver Lance",
-    "s6k": "Jet-Black Spirit",
-    "s5a": "Matchless Fighters",
-    "s5i": "Single Strike Master",
-    "s5r": "Rapid Strike Master",
-    "s4a": "Shiny Star V",
-    "s4": "Amazing Volt Tackle",
-    "s3a": "Legendary Heartbeat",
-    "s3": "Infinity Zone",
-    "s2a": "Explosive Walker",
-    "s2": "Rebellion Crash",
-    "s1a": "VMAX Rising",
-    "s1h": "Shield",
-    "s1w": "Sword",
-    
-    # Sun & Moon (Japón)
-    "sm12a": "Tag All Stars",
-    "sm12": "Alter Genesis",
-    "sm11b": "Dream League",
-    "sm11a": "Remix Bout",
-    "sm11": "Miracle Twin",
-    "sm10b": "Sky Legend",
-    "sm10a": "GG End",
-    "sm10": "Double Blaze",
-    "sm9b": "Full Metal Wall",
-    "sm9a": "Night Unison",
-    "sm9": "Tag Bolt",
-    "sm8b": "GX Ultra Shiny",
-    "sm8a": "Dark Order",
-    "sm8": "Super-Burst Impact",
+    # Scarlet & Violet
+    "sv8a": "Terastal Fest ex", "sv8": "Super Electric Breaker", "sv7a": "Paradise Dragona", 
+    "sv7": "Stellar Miracle", "sv6a": "Night Wanderer", "sv6": "Mask of Change", 
+    "sv5a": "Crimson Haze", "sv5m": "Cyber Judge", "sv5k": "Wild Force", 
+    "sv4a": "Shiny Treasure ex", "sv4m": "Future Flash", "sv4k": "Ancient Roar", 
+    "sv3a": "Raging Surf", "sv3": "Ruler of the Black Flame", "sv2a": "Pokémon 151", 
+    "sv2d": "Clay Burst", "sv2p": "Snow Hazard", "sv1a": "Triplet Beat", 
+    "sv1v": "Violet ex", "sv1s": "Scarlet ex",
+    # Sword & Shield
+    "s12a": "VSTAR Universe", "s12": "Paradigm Trigger", "s11a": "Incandescent Arcana", 
+    "s11": "Lost Abyss", "s10a": "Dark Phantasma", "s10d": "Time Gazer", 
+    "s10p": "Space Juggler", "s9a": "Battle Region", "s9": "Star Birth", 
+    "s8b": "VMAX Climax", "s8a": "25th Anniversary Collection", "s8": "Fusion Arts", 
+    "s7d": "Towering Perfection", "s7r": "Blue Sky Stream", "s6a": "Eevee Heroes", 
+    "s6h": "Silver Lance", "s6k": "Jet-Black Spirit", "s5a": "Matchless Fighters", 
+    "s5i": "Single Strike Master", "s5r": "Rapid Strike Master", "s4a": "Shiny Star V", 
+    "s4": "Amazing Volt Tackle", "s3a": "Legendary Heartbeat", "s3": "Infinity Zone", 
+    "s2a": "Explosive Walker", "s2": "Rebellion Crash", "s1a": "VMAX Rising", 
+    "s1h": "Shield", "s1w": "Sword",
+    # Sun & Moon
+    "sm12a": "Tag All Stars", "sm12": "Alter Genesis", "sm11b": "Dream League", 
+    "sm11a": "Remix Bout", "sm11": "Miracle Twin", "sm10b": "Sky Legend", 
+    "sm10a": "GG End", "sm10": "Double Blaze", "sm9b": "Full Metal Wall", 
+    "sm9a": "Night Unison", "sm9": "Tag Bolt", "sm8b": "GX Ultra Shiny", 
+    "sm8a": "Dark Order", "sm8": "Super-Burst Impact", "sm7b": "Fairy Rise",
+    "sm7a": "Thunderclap Spark", "sm7": "Charisma of the Wrecked Sky", "sm6b": "Champion Road",
+    "sm6a": "Dragon Storm", "sm6": "Forbidden Light", "sm5plus": "Ultra Force",
+    "sm5m": "Ultra Moon", "sm5s": "Ultra Sun", "sm4plus": "GX Battle Boost",
+    "sm4a": "Ultradimensional Beasts", "sm4s": "Awakened Heroes", "sm3plus": "Shining Legends",
+    "sm3n": "Darkness that Consumes Light", "sm3h": "Have You Seen the Battle Rainbow?",
+    "sm2k": "Facing a New Trial", "sm2l": "Alolan Moonlight", "sm1plus": "Sun & Moon Plus",
+    "sm1m": "Collection Moon", "sm1s": "Collection Sun",
+    # XY & Black/White
+    "xy11": "Cruel Traitor / Explosive Fighter", "xy10": "Awakening Psychic King",
+    "xy9": "Rage of the Broken Heavens", "xy8": "Blue Shock / Red Flash",
+    "xy7": "Bandit Ring", "xy6": "Emerald Break", "xy5": "Tidal Storm / Gaia Volcano",
+    "xy4": "Phantom Gate", "xy3": "Rising Fist", "xy2": "Wild Blaze", "xy1": "Collection X / Y",
+    "cp6": "20th Anniversary Concept Pack", "cp5": "Mythical & Legendary Dream",
+    "cp4": "Premium Champion Pack", "cp3": "PokéKyun Collection", "cp2": "Legendary Holo",
+    "cp1": "Magma Gang vs Aqua Gang",
+    "bw9": "Megalo Cannon", "bw8": "Spiral Force / Thunder Knuckle", "bw7": "Plasma Gale",
+    "bw6": "Cold Flare / Freeze Bolt", "bw5": "Dragon Blade / Dragon Blast", 
+    "bw4": "Dark Rush", "bw3": "Hail Blizzard / Psycho Drive", "bw2": "Red Collection",
+    "bw1": "White Collection / Black Collection"
 }
 
 def normalizar_set_para_cm(nombre_set: str) -> str:
-    """Traduce el nombre del set a su equivalente exacto en inglés para Cardmarket."""
     if not nombre_set:
         return ""
     
     set_lower = nombre_set.lower().strip()
     
-    # 1. Comprobar si el usuario introdujo un código japonés directamente
     if set_lower in TRADUCCION_CODIGOS_JAPONESES:
         return TRADUCCION_CODIGOS_JAPONESES[set_lower]
         
-    # 2. Comprobar diccionario de nombres occidentales
     for esp, eng in TRADUCCION_SETS_INGLES.items():
         if esp in set_lower:
             return eng
             
-    # 3. Limpiar barras (ej: "Espada y Escudo / Cielos Evolutivos")
     if "/" in nombre_set:
         return nombre_set.split("/")[-1].strip()
         
@@ -177,7 +143,6 @@ def leer_carta_con_ocr(imagen: Image.Image) -> str:
         img_proc = enhancer.enhance(2.0)
 
         texto = ""
-        # Añadido soporte jpn para cartas japonesas
         idiomas_intento = ["jpn+eng+spa", "eng+spa", "eng"]
 
         for lang in idiomas_intento:
@@ -207,7 +172,6 @@ def leer_producto_sellado_ocr(imagen: Image.Image) -> tuple[str, str]:
         img_proc = enhancer.enhance(1.8)
         config_custom = r"--oem 3 --psm 11"
 
-        # Añadido jpn para capturar caracteres y códigos nipones
         idiomas_intento = ["jpn+spa+eng", "spa+eng", "eng"]
         for lang in idiomas_intento:
             try:
@@ -219,19 +183,16 @@ def leer_producto_sellado_ocr(imagen: Image.Image) -> tuple[str, str]:
 
         texto_lower = texto_extraido.lower()
 
-        # 1. BÚSQUEDA DE CÓDIGOS JAPONESES (EXPRESIÓN REGULAR)
-        # Captura códigos como sv4a, s12a, sm10b, xy9, cp6...
         match_jp = re.search(r'\b(sv[0-9]{1,2}[a-z]?|s[0-9]{1,2}[a-z]?|sm[0-9]{1,2}[a-z]?|xy[0-9]{1,2}[a-z]?|bw[0-9]{1,2}[a-z]?|cp[0-9])\b', texto_lower)
         if match_jp:
             codigo = match_jp.group(1)
             if codigo in TRADUCCION_CODIGOS_JAPONESES:
                 return TRADUCCION_CODIGOS_JAPONESES[codigo], texto_extraido
-            # Si lo detecta pero no está en el diccionario, lo devuelve crudo para que lo busques manualmente
             return codigo.upper(), texto_extraido
 
-        # 2. BÚSQUEDA DE SETS OCCIDENTALES POR PALABRAS CLAVE
+        # --- CATÁLOGO DE SETS (OCCIDENTALES Y JAPONESES INTEGRADOS) ---
         catalogo_sets = {
-            "Mega Evolución / Fuegos Fantasmales": ["mega", "megaevolucion", "megaevolution", "fuegos", "fantasmal", "phantasmal", "ghost", "flames"],
+            # Occidentales Recientes
             "Prismatic Evolutions": ["prismatic", "prismaticas", "pre", "eevee"],
             "Surging Sparks": ["surging", "sparks", "chispas", "ssp"],
             "Stellar Crown": ["stellar", "crown", "corona", "scr"],
@@ -242,21 +203,80 @@ def leer_producto_sellado_ocr(imagen: Image.Image) -> tuple[str, str]:
             "Obsidian Flames": ["obsidian", "flames", "llamas", "obf"],
             "Paldea Evolved": ["paldea", "evolved", "pal"],
             "Scarlet & Violet Base": ["scarlet", "violet", "svi"],
-            "Pokémon 151": ["151", "mew", "sv2a"],
             "Silver Tempest": ["silver", "tempest", "sit"],
             "Lost Origin": ["lost", "origin", "lor"],
-            "Astral Radiance": ["astral", "radiance", "asr"],
-            "Brilliant Stars": ["brilliant", "stars", "brs"],
-            "Fusion Strike": ["fusion", "strike", "fst"],
-            "Evolving Skies": ["evolving", "skies", "evs"],
-            "Chilling Reign": ["chilling", "reign", "cre"],
-            "Battle Styles": ["battle", "styles", "bst"],
-            "Vivid Voltage": ["vivid", "voltage", "viv"],
-            "Darkness Ablaze": ["darkness", "ablaze", "daa"],
-            "Rebel Clash": ["rebel", "clash", "rcl"],
-            "Sword & Shield Base": ["sword", "shield", "swsh"],
             "Crown Zenith": ["crown", "zenith", "crz"],
-            "Celebrations": ["celebrations", "cel"],
+            "Evolving Skies": ["evolving", "skies", "evs"],
+            
+            # Japoneses SV
+            "Terastal Fest ex": ["terastal", "fest", "sv8a"],
+            "Super Electric Breaker": ["super", "electric", "breaker", "sv8"],
+            "Paradise Dragona": ["paradise", "dragona", "sv7a"],
+            "Stellar Miracle": ["stellar", "miracle", "sv7"],
+            "Night Wanderer": ["night", "wanderer", "sv6a"],
+            "Mask of Change": ["mask", "change", "sv6"],
+            "Crimson Haze": ["crimson", "haze", "sv5a"],
+            "Cyber Judge": ["cyber", "judge", "sv5m"],
+            "Wild Force": ["wild", "force", "sv5k"],
+            "Shiny Treasure ex": ["shiny", "treasure", "sv4a"],
+            "Future Flash": ["future", "flash", "sv4m"],
+            "Ancient Roar": ["ancient", "roar", "sv4k"],
+            "Raging Surf": ["raging", "surf", "sv3a"],
+            "Ruler of the Black Flame": ["ruler", "black", "flame", "sv3"],
+            "Pokémon 151": ["151", "mew", "sv2a"],
+            "Clay Burst": ["clay", "burst", "sv2d"],
+            "Snow Hazard": ["snow", "hazard", "sv2p"],
+            "Triplet Beat": ["triplet", "beat", "sv1a"],
+            "Violet ex": ["violet", "sv1v"],
+            "Scarlet ex": ["scarlet", "sv1s"],
+
+            # Japoneses SWSH
+            "VSTAR Universe": ["vstar", "universe", "s12a"],
+            "Paradigm Trigger": ["paradigm", "trigger", "s12"],
+            "Incandescent Arcana": ["incandescent", "arcana", "s11a"],
+            "Lost Abyss": ["lost", "abyss", "s11"],
+            "Dark Phantasma": ["dark", "phantasma", "s10a"],
+            "Time Gazer": ["time", "gazer", "s10d"],
+            "Space Juggler": ["space", "juggler", "s10p"],
+            "Battle Region": ["battle", "region", "s9a"],
+            "Star Birth": ["star", "birth", "s9"],
+            "VMAX Climax": ["vmax", "climax", "s8b"],
+            "25th Anniversary Collection": ["25th", "anniversary", "collection", "s8a"],
+            "Fusion Arts": ["fusion", "arts", "s8"],
+            "Towering Perfection": ["towering", "perfection", "s7d"],
+            "Blue Sky Stream": ["blue", "sky", "stream", "s7r"],
+            "Eevee Heroes": ["eevee", "heroes", "s6a"],
+            "Silver Lance": ["silver", "lance", "s6h"],
+            "Jet-Black Spirit": ["jet-black", "spirit", "s6k"],
+            "Matchless Fighters": ["matchless", "fighters", "s5a"],
+            "Shiny Star V": ["shiny", "star", "v", "s4a"],
+            "Amazing Volt Tackle": ["amazing", "volt", "tackle", "s4"],
+            "Legendary Heartbeat": ["legendary", "heartbeat", "s3a"],
+            "Infinity Zone": ["infinity", "zone", "s3"],
+            "Explosive Walker": ["explosive", "walker", "s2a"],
+            "Rebellion Crash": ["rebellion", "crash", "s2"],
+            "VMAX Rising": ["vmax", "rising", "s1a"],
+            
+            # Japoneses SM
+            "Tag All Stars": ["tag", "stars", "sm12a"],
+            "Alter Genesis": ["alter", "genesis", "sm12"],
+            "Dream League": ["dream", "league", "sm11b"],
+            "Remix Bout": ["remix", "bout", "sm11a"],
+            "Miracle Twin": ["miracle", "twin", "sm11"],
+            "Sky Legend": ["sky", "legend", "sm10b"],
+            "GG End": ["gg", "end", "sm10a"],
+            "Double Blaze": ["double", "blaze", "sm10"],
+            "Full Metal Wall": ["full", "metal", "wall", "sm9b"],
+            "Night Unison": ["night", "unison", "sm9a"],
+            "Tag Bolt": ["tag", "bolt", "sm9"],
+            "GX Ultra Shiny": ["ultra", "shiny", "sm8b"],
+            "Dark Order": ["dark", "order", "sm8a"],
+            "Super-Burst Impact": ["super-burst", "impact", "sm8"],
+            
+            # Clásicos JP
+            "20th Anniversary Concept Pack": ["20th", "anniversary", "concept", "cp6"],
+            "PokéKyun Collection": ["pokekyun", "collection", "cp3"],
+            "Legendary Holo": ["legendary", "holo", "cp2"],
         }
 
         mejor_coincidencia = ""
@@ -426,7 +446,6 @@ with col1:
         idioma_sellado = st.selectbox("Idioma", ["Inglés", "Español", "Japonés", "Chino"])
         nombre_set = st.text_input("Nombre del Set o Colección (Ej: 'sv4a' o '151')", value=(st.session_state.auto_set_name if tipo_sellado != "Otros" else ""))
 
-        # Traducción Dinámica
         set_para_buscar = normalizar_set_para_cm(nombre_set)
         busqueda_cm_sellado = f"{tipo_sellado} {set_para_buscar if tipo_sellado != 'Otros' else custom_producto}".strip()
         url_cardmarket_sellado = f"https://www.cardmarket.com/en/Pokemon/Products/Search?searchString={quote_plus(busqueda_cm_sellado)}"
