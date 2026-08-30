@@ -262,7 +262,7 @@ def leer_producto_sellado_ocr(imagen: Image.Image) -> tuple[str, str]:
 
         # 2. CATÁLOGO DE SETS (Occidentales ESP/ENG integrados + Japoneses por nombre)
         catalogo_sets = {
-            # Scarlet & Violet (ENG + ESP)
+            # Mega Evolution / Scarlet & Violet Era
             "Phantasmal Flames": ["phantasmal", "flames", "fuegos", "fantasmales"],
             "Prismatic Evolutions": ["prismatic", "prismaticas", "pre", "eevee"],
             "Surging Sparks": ["surging", "sparks", "chispas", "vertiginosas", "ssp"],
@@ -320,7 +320,7 @@ def leer_producto_sellado_ocr(imagen: Image.Image) -> tuple[str, str]:
             "Flashfire": ["flashfire", "destellos", "fuego", "flf"],
             "XY Base": ["xy", "base"],
 
-            # Japoneses (Apoyo por nombre directo sin depender solo del código)
+            # Japoneses (Apoyo por nombre directo)
             "VSTAR Universe": ["vstar", "universe", "s12a"],
             "Shiny Treasure ex": ["shiny", "treasure", "sv4a"],
             "Shiny Star V": ["shiny", "star", "v", "s4a"],
@@ -331,18 +331,16 @@ def leer_producto_sellado_ocr(imagen: Image.Image) -> tuple[str, str]:
         mejor_coincidencia = ""
         puntuacion_maxima = 0
 
-        # Extraemos las palabras exactas que leyó el OCR para validar los códigos cortos
+        # Extraemos palabras exactas para los códigos cortos
         palabras_ocr = set(re.findall(r'\b\w+\b', texto_lower))
 
         for nombre_set, palabras_clave in catalogo_sets.items():
             puntuacion_actual = 0
             for palabra in palabras_clave:
                 if len(palabra) <= 3:
-                    # Si es un código corto (ej: lot, par, sum), exigimos que sea la palabra exacta
                     if palabra in palabras_ocr:
                         puntuacion_actual += 5 
                 else:
-                    # Si es una palabra larga (ej: phantasmal, flames), permitimos coincidencias parciales
                     if palabra in texto_lower:
                         puntuacion_actual += len(palabra)
 
@@ -543,7 +541,7 @@ with col1:
         else:
             valor_defecto = ""
             
-        nombre_set = st.text_input("Nombre del Set o Colección (Ej: 'sv4a' o '151')", value=valor_defecto)
+        nombre_set = st.text_input("Nombre del Set o Colección (Ej: 'sv4a' o 'Phantasmal Flames')", value=valor_defecto)
 
         set_para_buscar = normalizar_set_para_cm(nombre_set)
         
