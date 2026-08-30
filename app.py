@@ -359,8 +359,13 @@ with col1:
         idioma_sellado = st.selectbox("Idioma", ["Inglés", "Español", "Japonés", "Chino"])
         nombre_set = st.text_input("Nombre del Set o Colección", value=st.session_state.auto_set_name if tipo_sellado != "Otros" else "")
         
-        # --- ENLACE A CARDMARKET PARA PRODUCTO SELLADO ---
-        busqueda_cm_sellado = f"{tipo_sellado} {nombre_set if tipo_sellado != 'Otros' else custom_producto}".strip()
+        # --- ENLACE A CARDMARKET LIMPIO PARA PRODUCTO SELLADO ---
+        # Si el set tiene una barra '/', nos quedamos únicamente con la parte limpia (ej. 'Fuegos Fantasmales')
+        set_para_buscar = nombre_set
+        if "/" in set_para_buscar:
+            set_para_buscar = set_para_buscar.split("/")[-1].strip()
+
+        busqueda_cm_sellado = f"{tipo_sellado} {set_para_buscar if tipo_sellado != 'Otros' else custom_producto}".strip()
         url_cardmarket_sellado = f"https://www.cardmarket.com/en/Pokemon/Products/Search?searchString={busqueda_cm_sellado.replace(' ', '+')}"
         st.markdown(f"🔗 **[Ver precio de este producto sellado en Cardmarket]({url_cardmarket_sellado})**", unsafe_allow_html=True)
 
