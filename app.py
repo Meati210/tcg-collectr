@@ -331,8 +331,21 @@ def leer_producto_sellado_ocr(imagen: Image.Image) -> tuple[str, str]:
         mejor_coincidencia = ""
         puntuacion_maxima = 0
 
+        # Extraemos las palabras exactas que leyó el OCR para validar los códigos cortos
+        palabras_ocr = set(re.findall(r'\b\w+\b', texto_lower))
+
         for nombre_set, palabras_clave in catalogo_sets.items():
-            puntuacion_actual = sum(len(palabra) for palabra in palabras_clave if palabra in texto_lower)
+            puntuacion_actual = 0
+            for palabra in palabras_clave:
+                if len(palabra) <= 3:
+                    # Si es un código corto (ej: lot, par, sum), exigimos que sea la palabra exacta
+                    if palabra in palabras_ocr:
+                        puntuacion_actual += 5 
+                else:
+                    # Si es una palabra larga (ej: phantasmal, flames), permitimos coincidencias parciales
+                    if palabra in texto_lower:
+                        puntuacion_actual += len(palabra)
+
             if puntuacion_actual > puntuacion_maxima:
                 puntuacion_maxima = puntuacion_actual
                 mejor_coincidencia = nombre_set
