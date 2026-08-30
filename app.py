@@ -45,7 +45,7 @@ def leer_producto_sellado_ocr(imagen):
         img_proc = enhancer.enhance(1.8) 
         config_custom = r'--oem 3 --psm 11'
         
-        for lang in ['spa+eng', 'spa', 'eng']:
+        for lang in ['spa+eng+chi_sim', 'spa', 'eng']:
             try:
                 texto = pytesseract.image_to_string(img_proc, lang=lang, config=config_custom)
                 if texto.strip():
@@ -55,12 +55,11 @@ def leer_producto_sellado_ocr(imagen):
                 
         texto_lower = texto_extraido.lower()
         
-        # --- DICCIONARIO MAESTRO DE COLECCIONES Y SUS VARIANTES OCR ---
-        # Cada set tiene palabras clave asociadas para sumar puntos de coincidencia
+        # --- DICCIONARIO MAESTRO CON MEGAEVOLUCIÓN Y BLOQUES HISTÓRICOS ---
         catalogo_sets = {
-            "Fuegos Fantasmales": ["fuegos", "fantasmal", "phantasmal", "megaevolucion", "fantas"],
-            "CSV10C - 共逐荣光": ["csv10", "c5v10", "共逐荣光"],
-            "Prismatic Evolutions": ["prismatic", "prismaticas", "pre"],
+            # Megaevolución y Actualidad (2026 / Series Nuevas)
+            "Mega Evolución / Fuegos Fantasmales": ["mega", "megaevolucion", "megaevolution", "fuegos", "fantasmal", "phantasmal", "ghost", "flames"],
+            "Prismatic Evolutions": ["prismatic", "prismaticas", "pre", "eevee"],
             "Surging Sparks": ["surging", "sparks", "chispas", "ssp"],
             "Stellar Crown": ["stellar", "crown", "corona", "scr"],
             "Shrouded Fable": ["shrouded", "fable", "fabulas", "sfa"],
@@ -71,61 +70,138 @@ def leer_producto_sellado_ocr(imagen):
             "Paldea Evolved": ["paldea", "evolved", "pal"],
             "Scarlet & Violet Base": ["scarlet", "violet", "svi"],
             "Pokémon 151": ["151", "mew", "sv2a"],
+            "CSV10C - 共逐荣光": ["csv10", "c5v10", "共逐荣光"],
             
-            # Sword & Shield
-            "Evolving Skies": ["evolving", "skies", "evs"],
-            "Brilliant Stars": ["brilliant", "stars", "brs"],
+            # Sword & Shield (2020 - 2022)
+            "Silver Tempest": ["silver", "tempest", "sit"],
             "Lost Origin": ["lost", "origin", "lor"],
+            "Astral Radiance": ["astral", "radiance", "asr"],
+            "Brilliant Stars": ["brilliant", "stars", "brs"],
+            "Fusion Strike": ["fusion", "strike", "fst"],
+            "Evolving Skies": ["evolving", "skies", "evs"],
+            "Chilling Reign": ["chilling", "reign", "cre"],
+            "Battle Styles": ["battle", "styles", "bst"],
+            "Vivid Voltage": ["vivid", "voltage", "viv"],
+            "Darkness Ablaze": ["darkness", "ablaze", "daa"],
+            "Rebel Clash": ["rebel", "clash", "rcl"],
+            "Sword & Shield Base": ["sword", "shield", "swsh"],
             "Crown Zenith": ["crown", "zenith", "crz"],
             "Celebrations": ["celebrations", "cel"],
-            "Rebel Clash": ["rebel", "clash", "rcl"],
-            "Darkness Ablaze": ["darkness", "ablaze", "daa"],
-            "Vivid Voltage": ["vivid", "voltage", "viv"],
-            "Battle Styles": ["battle", "styles", "bst"],
-            "Chilling Reign": ["chilling", "reign", "cre"],
-            "Fusion Strike": ["fusion", "strike", "fst"],
-            "Astral Radiance": ["astral", "radiance", "asr"],
-            "Silver Tempest": ["silver", "tempest", "sit"],
             
-            # Sun & Moon
-            "Guardians Rising": ["guardians", "rising", "gri"],
-            "Burning Shadows": ["burning", "shadows", "bus"],
-            "Ultra Prism": ["ultra", "prism", "upr"],
-            "Forbidden Light": ["forbidden", "light", "fli"],
-            "Celestial Storm": ["celestial", "storm", "ces"],
-            "Lost Thunder": ["lost", "thunder", "lot"],
-            "Team Up": ["team", "teu"],
-            "Unbroken Bonds": ["unbroken", "bonds", "unb"],
+            # Sun & Moon (2017 - 2019)
+            "Cosmic Eclipse": ["cosmic", "eclipse", "cec"],
             "Unified Minds": ["unified", "minds", "unm"],
-            "Cosmic Eclipse": ["cosmic", "eclipse", "cec"]
+            "Unbroken Bonds": ["unbroken", "bonds", "unb"],
+            "Team Up": ["team", "teu"],
+            "Lost Thunder": ["lost", "thunder", "lot"],
+            "Celestial Storm": ["celestial", "storm", "ces"],
+            "Forbidden Light": ["forbidden", "light", "fli"],
+            "Ultra Prism": ["ultra", "prism", "upr"],
+            "Burning Shadows": ["burning", "shadows", "bus"],
+            "Guardians Rising": ["guardians", "rising", "gri"],
+            "Sun & Moon Base": ["sun", "moon", "sum"],
+            "Crimson Invasion": ["crimson", "invasion", "cin"],
+            "Shining Legends": ["shining", "legends", "slg"],
+            "Dragon Majesty": ["dragon", "majesty", "drm"],
+            
+            # XY Series & Mega Era Clásica (2014 - 2016)
+            "Steam Siege": ["steam", "siege", "sts"],
+            "Fates Collide": ["fates", "collide", "fco"],
+            "BREAKpoint": ["breakpoint", "bkp"],
+            "BREAKthrough": ["breakthrough", "bkt"],
+            "Ancient Origins": ["ancient", "origins", "aor"],
+            "Roaring Skies": ["roaring", "skies", "ros"],
+            "Primal Clash": ["primal", "clash", "prc"],
+            "Phantom Forces": ["phantom", "forces", "phf"],
+            "Furious Fists": ["furious", "fists", "ffi"],
+            "Flashfire": ["flashfire", "flf"],
+            "XY Base": ["xy", "base"],
+            "Generations": ["generations", "gdp"],
+            "Evolutions": ["evolutions", "evo"],
+            
+            # Black & White (2011 - 2013)
+            "Plasma Blast": ["plasma", "blast", "plb"],
+            "Plasma Freeze": ["plasma", "freeze", "plf"],
+            "Plasma Storm": ["plasma", "storm", "pls"],
+            "Boundaries Crossed": ["boundaries", "crossed", "bcr"],
+            "Dragons Exalted": ["dragons", "exalted", "drx"],
+            "Dark Explorers": ["dark", "explorers", "dex"],
+            "Next Destinies": ["next", "destinies", "nxd"],
+            "Noble Victories": ["noble", "victories", "nvi"],
+            "Emerging Powers": ["emerging", "powers", "epo"],
+            "Black & White Base": ["black", "white", "blw"],
+            
+            # HeartGold & SoulSilver & Platinum & Diamond & Pearl (2007 - 2011)
+            "Call of Legends": ["call", "legends", "col"],
+            "Triumphant": ["triumphant", "tm"],
+            "Undaunted": ["undaunted", "ud"],
+            "Catching Legends": ["unleashed", "ul"],
+            "HeartGold & SoulSilver Base": ["heartgold", "soulsilver", "hgss"],
+            "Supreme Victors": ["supreme", "victors"],
+            "Rising Rivals": ["rising", "rivals"],
+            "Platinum Base": ["platinum", "pl"],
+            "Stormfront": ["stormfront"],
+            "Legends Awakened": ["legends", "awakened"],
+            "Majestic Dawn": ["majestic", "dawn"],
+            "Great Encounters": ["great", "encounters"],
+            "Diamond & Pearl Base": ["diamond", "pearl", "dp"],
+            
+            # EX Era (2003 - 2007)
+            "Power Keepers": ["power", "keepers"],
+            "Dragon Frontiers": ["dragon", "frontiers"],
+            "Crystal Guardians": ["crystal", "guardians"],
+            "Holon Phantoms": ["holon", "phantoms"],
+            "Legend Maker": ["legend", "maker"],
+            "Delta Species": ["delta", "species"],
+            "Unseen Forces": ["unseen", "forces"],
+            "Emerald": ["emerald"],
+            "Deoxys": ["deoxys"],
+            "Team Magma vs Team Aqua": ["magma", "aqua"],
+            "Hidden Legends": ["hidden", "legends"],
+            "FireRed & LeafGreen": ["firered", "leafgreen"],
+            "Rocket Returns": ["rocket", "returns"],
+            "Sandstorm": ["sandstorm"],
+            "EX Ruby & Sapphire": ["ruby", "sapphire"],
+            
+            # Classic / Retro (1999 - 2003)
+            "Skyridge": ["skyridge"],
+            "Aquapolis": ["aquapolis"],
+            "Expedition": ["expedition"],
+            "Legendary Collection": ["legendary", "collection"],
+            "Neo Destiny": ["neo", "destiny"],
+            "Neo Revelation": ["neo", "revelation"],
+            "Neo Discovery": ["neo", "discovery"],
+            "Neo Genesis": ["neo", "genesis"],
+            "Gym Challenge": ["gym", "challenge"],
+            "Gym Heroes": ["gym", "heroes"],
+            "Team Rocket": ["team", "rocket"],
+            "Fossil": ["fossil"],
+            "Jungle": ["jungle"],
+            "Base Set": ["base", "set", "1999"]
         }
         
-        # --- SISTEMA DE PUNTUACIÓN DINÁMICO (SCORING) ---
+        # --- SISTEMA DE PUNTUACIÓN RÁPIDO Y OPTIMIZADO ---
         mejor_coincidencia = ""
         puntuacion_maxima = 0
         
         for nombre_set, palabras_clave in catalogo_sets.items():
             puntuacion_actual = 0
             for palabra in palabras_clave:
-                # Si la palabra clave está dentro del texto extraído por el OCR
                 if palabra in texto_lower:
-                    puntuacion_actual += len(palabra) # Da más peso a palabras clave más largas y específicas
+                    puntuacion_actual += len(palabra)
             
-            # Comprobación adicional de similitud de texto por si el OCR leyó algo parecido
-            matches_difflib = difflib.get_close_matches(nombre_set.lower(), texto_lower.split(), n=1, cutoff=0.6)
-            if matches_difflib:
-                puntuacion_actual += 5
-                
             if puntuacion_actual > puntuacion_maxima:
                 puntuacion_maxima = puntuacion_actual
                 mejor_coincidencia = nombre_set
 
-        # Si encontramos una coincidencia clara por puntos
         if puntuacion_maxima > 0 and mejor_coincidencia:
             return mejor_coincidencia, texto_extraido
 
-        # Búsqueda por patrón de código tipo SV (ej: SV03, SVI)
-        match_sv = re.search(r'(sv\s*\d+[a-z]?)', texto_extraido, re.IGNORECASE)
+        matches_difflib = difflib.get_close_matches(texto_lower, list(catalogo_sets.keys()), n=1, cutoff=0.4)
+        if matches_difflib:
+            return matches_difflib[0], texto_extraido
+
+        match_sv = re.search(r'(sv\s*\d+[a-z]?|swsh\s*\d+)', texto_extraido, re.IGNORECASE)
         if match_sv:
             return match_sv.group(1).replace(" ", "").upper(), texto_extraido
 
@@ -288,7 +364,7 @@ with col1:
         
         if st.button("Añadir Producto Sellado"):
             nombre_completo = f"{custom_producto} - {nombre_set}" if tipo_sellado == "Otros" else f"{tipo_sellado} - {nombre_set}"
-            if nombre_set.sys.strip() != "" if hasattr(nombre_set, 'sys') else nombre_set.strip() != "" or (tipo_sellado == "Otros" and custom_producto.strip() != ""):
+            if nombre_set.strip() != "" or (tipo_sellado == "Otros" and custom_producto.strip() != ""):
                 guardar_en_portafolio(nombre_completo, idioma_sellado, "Sellado", precio_sellado_usuario, precio_base_sellado)
                 st.success("¡Producto sellado añadido correctamente!")
                 st.rerun()
