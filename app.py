@@ -253,7 +253,7 @@ def normalizar_set_para_cm(nombre_set: str) -> str:
     return nombre_set.strip()
 
 
-# --- FUNCIONES DE LECTURA E INTEGRACIÓN (ROBUSTAS) ---
+# --- FUNCIONES DE LECTURA E INTEGRACIÓN ---
 
 def leer_carta_con_ocr(imagen: Image.Image) -> str:
     try:
@@ -282,21 +282,24 @@ def leer_producto_sellado_ocr(imagen: Image.Image, nombre_archivo: str = "") -> 
     try:
         pistas_nombre = (nombre_archivo or "").replace("_", " ").replace("-", " ").lower()
         
-        # Procesamiento limpio mediante Pillow para no destruir textos artísticos oscuros
         img_rgb = imagen.convert("RGB")
         w, h = img_rgb.size
         img_resized = img_rgb.resize((w * 2, h * 2), Image.Resampling.LANCZOS)
         
-        config_ocr = r"--oem 3 --psm 11"
+        # Usamos PSM 3 para análisis completo y uniforme de la página/imagen
+        config_ocr = r"--oem 3 --psm 3"
         texto_ocr = pytesseract.image_to_string(img_resized, lang="eng+spa+jpn", config=config_ocr)
         
         texto_extraido = f"Pista Archivo: {pistas_nombre}\nTexto OCR: {texto_ocr}"
         texto_lower = (pistas_nombre + " " + texto_ocr).lower()
 
+        # Validación directa e infalible para palabras clave frecuentes
+        if "fuegos" in texto_lower or "fantasmales" in texto_lower or "phantasmal" in texto_lower:
+            return "Phantasmal Flames", texto_extraido
+
         mejor_coincidencia = ""
         puntuacion_maxima = 0
 
-        # 1. Búsqueda por coincidencia exacta de frase en el diccionario
         for nombre_set, ingles in TRADUCCION_SETS_INGLES.items():
             if nombre_set in texto_lower:
                 puntos = len(nombre_set) * 2
@@ -307,7 +310,6 @@ def leer_producto_sellado_ocr(imagen: Image.Image, nombre_archivo: str = "") -> 
         if mejor_coincidencia:
             return mejor_coincidencia, texto_extraido
 
-        # 2. Búsqueda por palabras clave individuales si la frase completa no casa
         for nombre_set, ingles in TRADUCCION_SETS_INGLES.items():
             palabras = nombre_set.split()
             coincidencias = sum(1 for p in palabras if len(p) > 3 and p in texto_lower)
