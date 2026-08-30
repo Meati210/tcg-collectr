@@ -253,7 +253,7 @@ def normalizar_set_para_cm(nombre_set: str) -> str:
     return nombre_set.strip()
 
 
-# --- FUNCIONES DE LECTURA E INTEGRACIÓN ---
+# --- FUNCIONES DE LECTURA E INTEGRACIÓN (ROBUSTAS) ---
 
 def leer_carta_con_ocr(imagen: Image.Image) -> str:
     try:
@@ -282,22 +282,24 @@ def leer_producto_sellado_ocr(imagen: Image.Image, nombre_archivo: str = "") -> 
     try:
         pistas_nombre = (nombre_archivo or "").replace("_", " ").replace("-", " ").lower()
         
+        # Procesamiento limpio mediante Pillow para no destruir textos artísticos oscuros
         img_rgb = imagen.convert("RGB")
-        img_np = np.array(img_rgb)
-        gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
-        gray = cv2.resize(gray, (0, 0), fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
-        _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-
-        texto_ocr = pytesseract.image_to_string(thresh, lang="eng+spa+jpn", config=r"--oem 3 --psm 11")
+        w, h = img_rgb.size
+        img_resized = img_rgb.resize((w * 2, h * 2), Image.Resampling.LANCZOS)
+        
+        config_ocr = r"--oem 3 --psm 11"
+        texto_ocr = pytesseract.image_to_string(img_resized, lang="eng+spa+jpn", config=config_ocr)
+        
         texto_extraido = f"Pista Archivo: {pistas_nombre}\nTexto OCR: {texto_ocr}"
         texto_lower = (pistas_nombre + " " + texto_ocr).lower()
 
         mejor_coincidencia = ""
         puntuacion_maxima = 0
 
+        # 1. Búsqueda por coincidencia exacta de frase en el diccionario
         for nombre_set, ingles in TRADUCCION_SETS_INGLES.items():
             if nombre_set in texto_lower:
-                puntos = len(nombre_set)
+                puntos = len(nombre_set) * 2
                 if puntos > puntuacion_maxima:
                     puntuacion_maxima = puntos
                     mejor_coincidencia = ingles
@@ -305,6 +307,7 @@ def leer_producto_sellado_ocr(imagen: Image.Image, nombre_archivo: str = "") -> 
         if mejor_coincidencia:
             return mejor_coincidencia, texto_extraido
 
+        # 2. Búsqueda por palabras clave individuales si la frase completa no casa
         for nombre_set, ingles in TRADUCCION_SETS_INGLES.items():
             palabras = nombre_set.split()
             coincidencias = sum(1 for p in palabras if len(p) > 3 and p in texto_lower)
@@ -313,7 +316,7 @@ def leer_producto_sellado_ocr(imagen: Image.Image, nombre_archivo: str = "") -> 
 
         return "", texto_extraido
     except Exception as e:
-        return "", f"Error general: {str(e)}"
+        return "", f"Error general OCR: {str(e)}"
 
 
 def obtener_precio_real(nombre_carta: str) -> float | None:
@@ -357,7 +360,7 @@ def guardar_en_portafolio(nombre: str, idioma: str, tipo: str, precio_usuario: f
 
 # --- INTERFAZ Y ESTADO ---
 st.set_page_config(page_title="Mi TCG Collectr Pro", layout="wide")
-st.title("🃏 Mi TCG Collectr (Versión Completa Extendida)")
+st.title("🃏 Mi TCG Collectr (Versión Completa Definitiva)")
 
 if "portfolio" not in st.session_state:
     st.session_state.portfolio = pd.DataFrame(columns=[
