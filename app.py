@@ -7,6 +7,27 @@ import requests
 import re
 import difflib
 
+# --- DICCIONARIO DE TRADUCCIÓN RÁPIDA DE SETS (Español/Otros -> Inglés para Cardmarket) ---
+TRADUCCION_SETS_INGLES = {
+    "fuegos fantasmales": "Phantasmal Flames",
+    "prismáticas": "Prismatic Evolutions",
+    "fuerzas temporales": "Temporal Forces",
+    "brechas paradox": "Paradox Rift",
+    "llamas obsidianas": "Obsidian Flames",
+    "fábulas sombrías": "Shrouded Fable",
+    "mascarada crepuscular": "Twilight Masquerade"
+}
+
+def normalizar_set_para_cm(nombre_set):
+    """Convierte nombres de sets comunes al inglés para que Cardmarket los reconozca sin fallo."""
+    set_lower = nombre_set.lower()
+    for esp, eng in TRADUCCION_SETS_INGLES.items():
+        if esp in set_lower:
+            return eng
+    if "/" in nombre_set:
+        return nombre_set.split("/")[-1].strip()
+    return nombre_set
+
 # --- FUNCIONES PRINCIPALES ---
 
 def leer_carta_con_ocr(imagen):
@@ -55,9 +76,9 @@ def leer_producto_sellado_ocr(imagen):
                 
         texto_lower = texto_extraido.lower()
         
-        # --- DICCIONARIO MAESTRO CON MEGAEVOLUCIÓN Y BLOQUES HISTÓRICOS ---
+        # --- DICCIONARIO MAESTRO EXTENDIDO CON MEGAEVOLUCIÓN Y BLOQUES HISTÓRICOS ---
         catalogo_sets = {
-            # Megaevolución y Actualidad (2026 / Series Nuevas)
+            # Megaevolución y Actualidad
             "Mega Evolución / Fuegos Fantasmales": ["mega", "megaevolucion", "megaevolution", "fuegos", "fantasmal", "phantasmal", "ghost", "flames"],
             "Prismatic Evolutions": ["prismatic", "prismaticas", "pre", "eevee"],
             "Surging Sparks": ["surging", "sparks", "chispas", "ssp"],
@@ -72,7 +93,7 @@ def leer_producto_sellado_ocr(imagen):
             "Pokémon 151": ["151", "mew", "sv2a"],
             "CSV10C - 共逐荣光": ["csv10", "c5v10", "共逐荣光"],
             
-            # Sword & Shield (2020 - 2022)
+            # Sword & Shield
             "Silver Tempest": ["silver", "tempest", "sit"],
             "Lost Origin": ["lost", "origin", "lor"],
             "Astral Radiance": ["astral", "radiance", "asr"],
@@ -88,7 +109,7 @@ def leer_producto_sellado_ocr(imagen):
             "Crown Zenith": ["crown", "zenith", "crz"],
             "Celebrations": ["celebrations", "cel"],
             
-            # Sun & Moon (2017 - 2019)
+            # Sun & Moon
             "Cosmic Eclipse": ["cosmic", "eclipse", "cec"],
             "Unified Minds": ["unified", "minds", "unm"],
             "Unbroken Bonds": ["unbroken", "bonds", "unb"],
@@ -104,7 +125,7 @@ def leer_producto_sellado_ocr(imagen):
             "Shining Legends": ["shining", "legends", "slg"],
             "Dragon Majesty": ["dragon", "majesty", "drm"],
             
-            # XY Series & Mega Era Clásica (2014 - 2016)
+            # XY Series & Mega Era Clásica
             "Steam Siege": ["steam", "siege", "sts"],
             "Fates Collide": ["fates", "collide", "fco"],
             "BREAKpoint": ["breakpoint", "bkp"],
@@ -119,7 +140,7 @@ def leer_producto_sellado_ocr(imagen):
             "Generations": ["generations", "gdp"],
             "Evolutions": ["evolutions", "evo"],
             
-            # Black & White (2011 - 2013)
+            # Black & White
             "Plasma Blast": ["plasma", "blast", "plb"],
             "Plasma Freeze": ["plasma", "freeze", "plf"],
             "Plasma Storm": ["plasma", "storm", "pls"],
@@ -131,56 +152,10 @@ def leer_producto_sellado_ocr(imagen):
             "Emerging Powers": ["emerging", "powers", "epo"],
             "Black & White Base": ["black", "white", "blw"],
             
-            # HeartGold & SoulSilver & Platinum & Diamond & Pearl (2007 - 2011)
-            "Call of Legends": ["call", "legends", "col"],
-            "Triumphant": ["triumphant", "tm"],
-            "Undaunted": ["undaunted", "ud"],
-            "Catching Legends": ["unleashed", "ul"],
-            "HeartGold & SoulSilver Base": ["heartgold", "soulsilver", "hgss"],
-            "Supreme Victors": ["supreme", "victors"],
-            "Rising Rivals": ["rising", "rivals"],
-            "Platinum Base": ["platinum", "pl"],
-            "Stormfront": ["stormfront"],
-            "Legends Awakened": ["legends", "awakened"],
-            "Majestic Dawn": ["majestic", "dawn"],
-            "Great Encounters": ["great", "encounters"],
-            "Diamond & Pearl Base": ["diamond", "pearl", "dp"],
-            
-            # EX Era (2003 - 2007)
-            "Power Keepers": ["power", "keepers"],
-            "Dragon Frontiers": ["dragon", "frontiers"],
-            "Crystal Guardians": ["crystal", "guardians"],
-            "Holon Phantoms": ["holon", "phantoms"],
-            "Legend Maker": ["legend", "maker"],
-            "Delta Species": ["delta", "species"],
-            "Unseen Forces": ["unseen", "forces"],
-            "Emerald": ["emerald"],
-            "Deoxys": ["deoxys"],
-            "Team Magma vs Team Aqua": ["magma", "aqua"],
-            "Hidden Legends": ["hidden", "legends"],
-            "FireRed & LeafGreen": ["firered", "leafgreen"],
-            "Rocket Returns": ["rocket", "returns"],
-            "Sandstorm": ["sandstorm"],
-            "EX Ruby & Sapphire": ["ruby", "sapphire"],
-            
-            # Classic / Retro (1999 - 2003)
-            "Skyridge": ["skyridge"],
-            "Aquapolis": ["aquapolis"],
-            "Expedition": ["expedition"],
-            "Legendary Collection": ["legendary", "collection"],
-            "Neo Destiny": ["neo", "destiny"],
-            "Neo Revelation": ["neo", "revelation"],
-            "Neo Discovery": ["neo", "discovery"],
-            "Neo Genesis": ["neo", "genesis"],
-            "Gym Challenge": ["gym", "challenge"],
-            "Gym Heroes": ["gym", "heroes"],
-            "Team Rocket": ["team", "rocket"],
-            "Fossil": ["fossil"],
-            "Jungle": ["jungle"],
+            # Retro y Classic
             "Base Set": ["base", "set", "1999"]
         }
         
-        # --- SISTEMA DE PUNTUACIÓN RÁPIDO Y OPTIMIZADO ---
         mejor_coincidencia = ""
         puntuacion_maxima = 0
         
@@ -294,11 +269,11 @@ with col1:
             st.image(img, caption="Imagen cargada", width=200)
             
             nombre_sugerido_ocr = leer_carta_con_ocr(img)
-            st.info("💡 Consejo: Puedes escribir el nombre y su número (ej: 'Charizard 109') para afinar la búsqueda:")
+            st.info("💡 Consejo: Puedes escribir el nombre en inglés y su número (ej: 'Charizard 109') para afinar la búsqueda:")
             nombre_carta_input = st.text_input("Nombre de la carta:", value=nombre_sugerido_ocr)
             
             url_cardmarket = f"https://www.cardmarket.com/en/Pokemon/Products/Search?searchString={nombre_carta_input.replace(' ' , '+')}"
-            st.markdown(f"🔗 **[Entra en Cardmarket y selecciona el idioma para precio concreto en otros idiomas]({url_cardmarket})**", unsafe_allow_html=True)
+            st.markdown(f"🔗 **[Entra en Cardmarket (en Inglés)]({url_cardmarket})**", unsafe_allow_html=True)
             
             if st.button("Consultar Precio en la API"):
                 st.info(f"🔍 Buscando entre las diferentes ediciones para: **{nombre_carta_input}**...")
@@ -359,15 +334,12 @@ with col1:
         idioma_sellado = st.selectbox("Idioma", ["Inglés", "Español", "Japonés", "Chino"])
         nombre_set = st.text_input("Nombre del Set o Colección", value=st.session_state.auto_set_name if tipo_sellado != "Otros" else "")
         
-        # --- ENLACE A CARDMARKET LIMPIO PARA PRODUCTO SELLADO ---
-        # Si el set tiene una barra '/', nos quedamos únicamente con la parte limpia (ej. 'Fuegos Fantasmales')
-        set_para_buscar = nombre_set
-        if "/" in set_para_buscar:
-            set_para_buscar = set_para_buscar.split("/")[-1].strip()
+        # --- TRADUCCIÓN AUTOMÁTICA A INGLÉS PARA CARDMARKET ---
+        set_para_buscar = normalizar_set_para_cm(nombre_set)
 
         busqueda_cm_sellado = f"{tipo_sellado} {set_para_buscar if tipo_sellado != 'Otros' else custom_producto}".strip()
         url_cardmarket_sellado = f"https://www.cardmarket.com/en/Pokemon/Products/Search?searchString={busqueda_cm_sellado.replace(' ', '+')}"
-        st.markdown(f"🔗 **[Ver precio de este producto sellado en Cardmarket]({url_cardmarket_sellado})**", unsafe_allow_html=True)
+        st.markdown(f"🔗 **[Ver precio de este producto sellado en Cardmarket (en Inglés)]({url_cardmarket_sellado})**", unsafe_allow_html=True)
 
         precio_base_sellado = 45.00
         precio_sellado_usuario = st.number_input("Precio inicial / estimado (€):", min_value=0.0, value=precio_base_sellado, step=1.0)
