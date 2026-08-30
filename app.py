@@ -7,7 +7,7 @@ import requests
 import re
 import difflib
 
-# --- DICCIONARIO MAESTRO AMPLIADO (ESPAÑOL, INGLÉS, JAPONÉS Y CHINO) ---
+# --- DICCIONARIO MAESTRO BIDIRECCIONAL (ESPAÑOL, INGLÉS, CÓDIGOS JAPONESES) ---
 TRADUCCION_SETS_COMPLETO = {
     # --- BLOQUE MEGA EVOLUTION / RECIENTES ---
     "30th celebration": "30th Celebration",
@@ -25,18 +25,30 @@ TRADUCCION_SETS_COMPLETO = {
 
     # --- BLOQUE SCARLET & VIOLET / ESCARLATA Y PÚRPURA ---
     "fuegos fantasmales": "Phantasmal Flames",
+    "phantasmal flames": "Phantasmal Flames",
     "prismáticas": "Prismatic Evolutions",
+    "prismatic evolutions": "Prismatic Evolutions",
     "chispas vertiginosas": "Surging Sparks",
+    "surging sparks": "Surging Sparks",
     "corona estelar": "Stellar Crown",
+    "stellar crown": "Stellar Crown",
     "fábulas sombrías": "Shrouded Fable",
+    "shrouded fable": "Shrouded Fable",
     "mascarada crepuscular": "Twilight Masquerade",
+    "twilight masquerade": "Twilight Masquerade",
     "fuerzas temporales": "Temporal Forces",
+    "temporal forces": "Temporal Forces",
     "brechas paradox": "Paradox Rift",
+    "paradox rift": "Paradox Rift",
     "llamas obsidianas": "Obsidian Flames",
+    "obsidian flames": "Obsidian Flames",
     "evoluciones en paldea": "Paldea Evolved",
+    "paldea evolved": "Paldea Evolved",
     "escarlata y púrpura": "Scarlet & Violet",
+    "scarlet & violet": "Scarlet & Violet",
     "151": "Pokémon 151",
-    # Códigos Japón / Asia SV
+    "pokemon 151": "Pokémon 151",
+    # Códigos Japón SV
     "sv1s": "Scarlet ex",
     "sv1v": "Violet ex",
     "sv2a": "Pokémon 151",
@@ -57,19 +69,33 @@ TRADUCCION_SETS_COMPLETO = {
 
     # --- BLOQUE SWORD & SHIELD / ESPADA Y ESCUDO ---
     "tempestad plateada": "Silver Tempest",
+    "silver tempest": "Silver Tempest",
     "origen perdido": "Lost Origin",
+    "lost origin": "Lost Origin",
     "resplandor astral": "Astral Radiance",
+    "astral radiance": "Astral Radiance",
     "astros brillantes": "Brilliant Stars",
+    "brilliant stars": "Brilliant Stars",
     "golpe furioso": "Fusion Strike",
+    "fusion strike": "Fusion Strike",
     "cielos evolutivos": "Evolving Skies",
+    "evolving skies": "Evolving Skies",
     "reino escalofriante": "Chilling Reign",
+    "chilling reign": "Chilling Reign",
     "estilos de combate": "Battle Styles",
+    "battle styles": "Battle Styles",
     "voltaje vívido": "Vivid Voltage",
+    "vivid voltage": "Vivid Voltage",
     "oscuridad incandescente": "Darkness Ablaze",
+    "darkness ablaze": "Darkness Ablaze",
     "choque rebelde": "Rebel Clash",
+    "rebel clash": "Rebel Clash",
     "espada y escudo": "Sword & Shield",
+    "sword & shield": "Sword & Shield",
     "zenit supremo": "Crown Zenith",
+    "crown zenith": "Crown Zenith",
     "celebraciones": "Celebrations",
+    "celebrations": "Celebrations",
     # Códigos Japón SWSH
     "s1w": "Sword",
     "s1h": "Shield",
@@ -96,20 +122,30 @@ TRADUCCION_SETS_COMPLETO = {
 
     # --- BLOQUE SUN & MOON / SOL Y LUNA ---
     "eclipse cósmico": "Cosmic Eclipse",
+    "cosmic eclipse": "Cosmic Eclipse",
     "mentes unificadas": "Unified Minds",
+    "unified minds": "Unified Minds",
     "vínculos indelebles": "Unbroken Bonds",
+    "unbroken bonds": "Unbroken Bonds",
     "unión de amigos": "Team Up",
+    "team up": "Team Up",
     "trueno perdido": "Lost Thunder",
+    "lost thunder": "Lost Thunder",
     "tormenta celestial": "Celestial Storm",
+    "celestial storm": "Celestial Storm",
     "luz prohibida": "Forbidden Light",
+    "forbidden light": "Forbidden Light",
     "ultraprisma": "Ultra Prism",
+    "ultra prism": "Ultra Prism",
     "sombras ardientes": "Burning Shadows",
+    "burning shadows": "Burning Shadows",
     "guardianes nacientes": "Guardians Rising",
-    "sol y luna": "Sun & Moon"
+    "guardians rising": "Guardians Rising",
+    "sol y luna": "Sun & Moon",
+    "sun & moon": "Sun & Moon"
 }
 
 def normalizar_set_para_cm(nombre_set):
-    """Traduce y busca coincidencias exactas y parciales para Cardmarket"""
     set_lower = nombre_set.lower().strip()
     if set_lower in TRADUCCION_SETS_COMPLETO:
         return TRADUCCION_SETS_COMPLETO[set_lower]
@@ -170,7 +206,7 @@ def leer_producto_sellado_ocr(imagen):
                 
         texto_lower = texto_extraido.lower()
         
-        # Búsqueda en el diccionario maestro por nombre clave o código
+        # Búsqueda exacta de cualquier nombre o código en el diccionario
         for clave, valor in TRADUCCION_SETS_COMPLETO.items():
             if clave in texto_lower:
                 return valor, texto_extraido
@@ -224,7 +260,7 @@ def guardar_en_portafolio(nombre, idioma, tipo, precio_usuario, precio_ingles_re
 # --- INTERFAZ DE USUARIO ---
 
 st.set_page_config(page_title="Mi TCG Collectr Pro", layout="wide")
-st.title("🃏 Mi TCG Collectr (Gestión de Sets ES / EN / JP)")
+st.title("🃏 Mi TCG Collectr (Soporte Robusto ES / EN / JP)")
 
 if 'portfolio' not in st.session_state:
     st.session_state.portfolio = pd.DataFrame(columns=["Item", "Tipo", "Idioma", "Precio Inglés Ref (€)", "Precio Actual (€)", "Factor Proporción"])
