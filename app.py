@@ -41,10 +41,10 @@ def leer_producto_sellado_ocr(imagen):
         
         img_proc = img_rgb.resize((w * 2, h * 2), Image.Resampling.LANCZOS).convert('L')
         enhancer = ImageEnhance.Contrast(img_proc)
-        img_proc = enhancer.enhance(1.5) 
+        img_proc = enhancer.enhance(1.8) 
         config_custom = r'--oem 3 --psm 11'
         
-        for lang in ['spa+eng+chi_sim', 'spa', 'eng']:
+        for lang in ['spa+eng', 'spa', 'eng']:
             try:
                 texto = pytesseract.image_to_string(img_proc, lang=lang, config=config_custom)
                 if texto.strip():
@@ -52,34 +52,18 @@ def leer_producto_sellado_ocr(imagen):
             except:
                 continue
                 
-        if not texto_extraido.strip():
-            return "", "El OCR no vio letras claras."
-            
         texto_lower = texto_extraido.lower()
-        texto_clean = re.sub(r'\s+', '', texto_lower)
+        texto_clean = re.sub(r'[^a-z0-9]', '', texto_lower)
         
-        # --- 1. PRIORIDAD MÁXIMA: Novedades y Megaevolución ---
-        sets_prioritarios = {
-            "fuegos": "Lote de Sobres - Fuegos Fantasmales", 
-            "fantasmal": "Lote de Sobres - Fuegos Fantasmales", 
-            "phantasmal": "Lote de Sobres - Fuegos Fantasmales",
-            "megaevolucion": "Lote de Sobres - Fuegos Fantasmales",
-            "csv10": "CSV10C - 共逐荣光", 
-            "c5v10": "CSV10C - 共逐荣光", 
-            "共逐荣光": "CSV10C - 共逐荣光",
-            "ascended": "Ascended Heroes", 
-            "perfect": "Perfect Order", 
-            "chaos": "Chaos Rising", 
-            "pitch": "Pitch Black", 
-            "30th": "30th Celebration", 
-            "delta": "Delta Reign"
-        }
-        
-        for clave, nombre_set in sets_prioritarios.items():
-            if clave in texto_lower or clave in texto_clean:
-                return nombre_set, texto_extraido
+        # --- BLOQUE DE BLINDAJE DIRECTO (Evita alucinaciones del OCR en cajas decoradas) ---
+        # Si el texto contiene cualquier rastro visual o letras confusas de esta caja específica:
+        if any(k in texto_lower or k in texto_clean for k in ["fuegos", "fantasmal", "phantasmal", "megaevolucion", "fantas"]):
+            return "Lote de Sobres - Fuegos Fantasmales", texto_extraido
+            
+        if any(k in texto_lower or k in texto_clean for k in ["csv10", "c5v10", "共逐荣光"]):
+            return "CSV10C - 共逐荣光", texto_extraido
 
-        # --- 2. RESTO DE SETS (Histórico) ---
+        # --- RESTO DE SETS (Histórico ordenado por prioridad) ---
         sets_conocidos = {
             "prismatic": "Prismatic Evolutions", "prismaticas": "Prismatic Evolutions", "pre": "Prismatic Evolutions",
             "surging": "Surging Sparks", "chispas": "Surging Sparks", "ssp": "Surging Sparks",
@@ -114,6 +98,9 @@ def leer_producto_sellado_ocr(imagen):
         match_sv = re.search(r'(sv\s*\d+[a-z]?)', texto_extraido, re.IGNORECASE)
         if match_sv:
             return match_sv.group(1).replace(" ", "").upper(), texto_extraido
+
+        if not texto_extraido.strip():
+            return "", "El OCR no vio letras claras."
 
         return "", texto_extraido
         
