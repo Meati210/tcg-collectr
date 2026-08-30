@@ -5,6 +5,7 @@ from PIL import Image, ImageEnhance
 from datetime import datetime, timedelta
 import requests
 import re
+import difflib
 
 # --- FUNCIONES PRINCIPALES ---
 
@@ -53,48 +54,77 @@ def leer_producto_sellado_ocr(imagen):
                 continue
                 
         texto_lower = texto_extraido.lower()
-        texto_clean = re.sub(r'[^a-z0-9]', '', texto_lower)
         
-        # --- BLOQUE DE BLINDAJE DIRECTO (Evita alucinaciones del OCR en cajas decoradas) ---
-        # Si el texto contiene cualquier rastro visual o letras confusas de esta caja específica:
-        if any(k in texto_lower or k in texto_clean for k in ["fuegos", "fantasmal", "phantasmal", "megaevolucion", "fantas"]):
-            return "Lote de Sobres - Fuegos Fantasmales", texto_extraido
-            
-        if any(k in texto_lower or k in texto_clean for k in ["csv10", "c5v10", "共逐荣光"]):
-            return "CSV10C - 共逐荣光", texto_extraido
-
-        # --- RESTO DE SETS (Histórico ordenado por prioridad) ---
-        sets_conocidos = {
-            "prismatic": "Prismatic Evolutions", "prismaticas": "Prismatic Evolutions", "pre": "Prismatic Evolutions",
-            "surging": "Surging Sparks", "chispas": "Surging Sparks", "ssp": "Surging Sparks",
-            "stellar": "Stellar Crown", "corona": "Stellar Crown", "scr": "Stellar Crown",
-            "shrouded": "Shrouded Fable", "fabulas": "Shrouded Fable", "sfa": "Shrouded Fable",
-            "twilight": "Twilight Masquerade", "mascarada": "Twilight Masquerade", "twm": "Twilight Masquerade",
-            "temporal": "Temporal Forces", "fuerzas": "Temporal Forces", "tef": "Temporal Forces",
-            "paradox": "Paradox Rift", "brechas": "Paradox Rift", "par": "Paradox Rift",
-            "obsidian": "Obsidian Flames", "llamas": "Obsidian Flames", "obf": "Obsidian Flames",
-            "paldea": "Paldea Evolved", "pal": "Paldea Evolved",
-            "scarlet": "Scarlet & Violet Base", "svi": "Scarlet & Violet Base",
-            "151": "Pokémon 151", "mew": "Pokémon 151", "sv2a": "Pokémon 151",
+        # --- DICCIONARIO MAESTRO DE COLECCIONES Y SUS VARIANTES OCR ---
+        # Cada set tiene palabras clave asociadas para sumar puntos de coincidencia
+        catalogo_sets = {
+            "Fuegos Fantasmales": ["fuegos", "fantasmal", "phantasmal", "megaevolucion", "fantas"],
+            "CSV10C - 共逐荣光": ["csv10", "c5v10", "共逐荣光"],
+            "Prismatic Evolutions": ["prismatic", "prismaticas", "pre"],
+            "Surging Sparks": ["surging", "sparks", "chispas", "ssp"],
+            "Stellar Crown": ["stellar", "crown", "corona", "scr"],
+            "Shrouded Fable": ["shrouded", "fable", "fabulas", "sfa"],
+            "Twilight Masquerade": ["twilight", "masquerade", "mascarada", "twm"],
+            "Temporal Forces": ["temporal", "forces", "fuerzas", "tef"],
+            "Paradox Rift": ["paradox", "rift", "brechas", "par"],
+            "Obsidian Flames": ["obsidian", "flames", "llamas", "obf"],
+            "Paldea Evolved": ["paldea", "evolved", "pal"],
+            "Scarlet & Violet Base": ["scarlet", "violet", "svi"],
+            "Pokémon 151": ["151", "mew", "sv2a"],
             
             # Sword & Shield
-            "evs": "Evolving Skies", "brs": "Brilliant Stars", "lor": "Lost Origin", 
-            "crz": "Crown Zenith", "cel": "Celebrations", "ssh": "Sword & Shield Base", 
-            "rcl": "Rebel Clash", "daa": "Darkness Ablaze", "viv": "Vivid Voltage", 
-            "bst": "Battle Styles", "cre": "Chilling Reign", "fst": "Fusion Strike", 
-            "asr": "Astral Radiance", "sit": "Silver Tempest",
+            "Evolving Skies": ["evolving", "skies", "evs"],
+            "Brilliant Stars": ["brilliant", "stars", "brs"],
+            "Lost Origin": ["lost", "origin", "lor"],
+            "Crown Zenith": ["crown", "zenith", "crz"],
+            "Celebrations": ["celebrations", "cel"],
+            "Rebel Clash": ["rebel", "clash", "rcl"],
+            "Darkness Ablaze": ["darkness", "ablaze", "daa"],
+            "Vivid Voltage": ["vivid", "voltage", "viv"],
+            "Battle Styles": ["battle", "styles", "bst"],
+            "Chilling Reign": ["chilling", "reign", "cre"],
+            "Fusion Strike": ["fusion", "strike", "fst"],
+            "Astral Radiance": ["astral", "radiance", "asr"],
+            "Silver Tempest": ["silver", "tempest", "sit"],
             
             # Sun & Moon
-            "sum": "Sun & Moon Base", "gri": "Guardians Rising", "bus": "Burning Shadows", 
-            "cin": "Crimson Invasion", "upr": "Ultra Prism", "fli": "Forbidden Light", 
-            "ces": "Celestial Storm", "lot": "Lost Thunder", "teu": "Team Up", 
-            "unb": "Unbroken Bonds", "unm": "Unified Minds", "cec": "Cosmic Eclipse"
+            "Guardians Rising": ["guardians", "rising", "gri"],
+            "Burning Shadows": ["burning", "shadows", "bus"],
+            "Ultra Prism": ["ultra", "prism", "upr"],
+            "Forbidden Light": ["forbidden", "light", "fli"],
+            "Celestial Storm": ["celestial", "storm", "ces"],
+            "Lost Thunder": ["lost", "thunder", "lot"],
+            "Team Up": ["team", "teu"],
+            "Unbroken Bonds": ["unbroken", "bonds", "unb"],
+            "Unified Minds": ["unified", "minds", "unm"],
+            "Cosmic Eclipse": ["cosmic", "eclipse", "cec"]
         }
         
-        for clave, nombre_set in sets_conocidos.items():
-            if clave in texto_lower or clave in texto_clean:
-                return nombre_set, texto_extraido
+        # --- SISTEMA DE PUNTUACIÓN DINÁMICO (SCORING) ---
+        mejor_coincidencia = ""
+        puntuacion_maxima = 0
+        
+        for nombre_set, palabras_clave in catalogo_sets.items():
+            puntuacion_actual = 0
+            for palabra in palabras_clave:
+                # Si la palabra clave está dentro del texto extraído por el OCR
+                if palabra in texto_lower:
+                    puntuacion_actual += len(palabra) # Da más peso a palabras clave más largas y específicas
+            
+            # Comprobación adicional de similitud de texto por si el OCR leyó algo parecido
+            matches_difflib = difflib.get_close_matches(nombre_set.lower(), texto_lower.split(), n=1, cutoff=0.6)
+            if matches_difflib:
+                puntuacion_actual += 5
+                
+            if puntuacion_actual > puntuacion_maxima:
+                puntuacion_maxima = puntuacion_actual
+                mejor_coincidencia = nombre_set
 
+        # Si encontramos una coincidencia clara por puntos
+        if puntuacion_maxima > 0 and mejor_coincidencia:
+            return mejor_coincidencia, texto_extraido
+
+        # Búsqueda por patrón de código tipo SV (ej: SV03, SVI)
         match_sv = re.search(r'(sv\s*\d+[a-z]?)', texto_extraido, re.IGNORECASE)
         if match_sv:
             return match_sv.group(1).replace(" ", "").upper(), texto_extraido
@@ -232,23 +262,19 @@ with col1:
                 st.session_state.last_sealed_file = archivo_foto_sellado.name
                 img_sellado = Image.open(archivo_foto_sellado)
                 
-                with st.spinner("🤖 Leyendo imagen minuciosamente..."):
+                with st.spinner("🤖 Analizando y puntuando coincidencias del set..."):
                     detectado, debug_text = leer_producto_sellado_ocr(img_sellado)
                     
                     if detectado:
                         st.session_state.auto_set_name = detectado
-                        st.success(f"✨ ¡Detectado y autorellenado: **{detectado}**!")
+                        st.success(f"✨ ¡Detectado por puntuación: **{detectado}**!")
                         with st.expander("🛠️ Ver qué leyó el robot (Diagnóstico)"):
                             st.text(debug_text)
                     else:
                         st.session_state.auto_set_name = ""
                         st.warning("⚠️ No se pudo leer automáticamente. Escribe el set manualmente abajo.")
                         with st.expander("🛠️ ¿Por qué falló? (Despliega para ver el diagnóstico)"):
-                            if "not found" in debug_text.lower() or "is not installed" in debug_text.lower() or "tesseract is not" in debug_text.lower():
-                                st.error("🚨 ¡FALTA TESSERACT! El servidor no tiene el lector instalado.")
-                            else:
-                                st.write("El bot extrajo esta información de la imagen:")
-                                st.text(debug_text)
+                            st.write(debug_text)
         else:
             st.session_state.last_sealed_file = None
 
@@ -262,7 +288,7 @@ with col1:
         
         if st.button("Añadir Producto Sellado"):
             nombre_completo = f"{custom_producto} - {nombre_set}" if tipo_sellado == "Otros" else f"{tipo_sellado} - {nombre_set}"
-            if nombre_set.strip() != "" or (tipo_sellado == "Otros" and custom_producto.strip() != ""):
+            if nombre_set.sys.strip() != "" if hasattr(nombre_set, 'sys') else nombre_set.strip() != "" or (tipo_sellado == "Otros" and custom_producto.strip() != ""):
                 guardar_en_portafolio(nombre_completo, idioma_sellado, "Sellado", precio_sellado_usuario, precio_base_sellado)
                 st.success("¡Producto sellado añadido correctamente!")
                 st.rerun()
